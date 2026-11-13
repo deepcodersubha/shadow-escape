@@ -1,0 +1,8 @@
+package com.example.shadowescape.physics
+
+data class Vector2(var x: Float = 0f, var y: Float = 0f) {
+    fun set(nx: Float, ny: Float) {
+        x = nx
+        y = ny
+    }
+}
