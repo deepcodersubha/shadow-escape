@@ -37,6 +37,7 @@ class Level {
 
     var onCheckpointReached: (() -> Unit)? = null
     var onGraceOpened: (() -> Unit)? = null
+    var onGraceMimicAwakened: (() -> Unit)? = null
     var onSwitchToggled: (() -> Unit)? = null
     var onDoorStateChanged: (() -> Unit)? = null
     var onLootDiscovered: ((LootReward) -> Unit)? = null
@@ -61,6 +62,9 @@ class Level {
         // --- ZONE 1: Dark Slate Dungeon (0 - 1380) — Main Combat Floor ---
         platforms.add(Platform(1, AABB(0f, 880f, 1380f, 320f), PlatformType.NORMAL))
 
+        // Site of Grace 1: Ashen Sepulcher Threshold Sanctuary (Safe starting sanctuary)
+        platforms.add(Platform(100, AABB(420f, 810f, 40f, 70f), PlatformType.CHECKPOINT, false, isGraceMimic = false))
+
         // Optional side-route platforms to Treasure Chest 1 (not required for progression)
         platforms.add(Platform(4, AABB(460f, 740f, 180f, 24f), PlatformType.ONE_WAY))
         platforms.add(Platform(5, AABB(720f, 610f, 220f, 24f), PlatformType.ONE_WAY))
@@ -68,17 +72,20 @@ class Level {
         // --- ZONE 2: Sunken Sewer Machinery (1380 - 2750) — Continuous Combat Arena ---
         platforms.add(Platform(2, AABB(1380f, 880f, 1370f, 320f), PlatformType.NORMAL))
 
-        // First Site of Grace (Sword-in-Stone, well-spaced in mid-crypt)
-        platforms.add(Platform(101, AABB(1620f, 810f, 40f, 70f), PlatformType.CHECKPOINT, false))
+        // Site of Grace 2: Glintstone Crypt Cavern Entrance (Safe sanctuary)
+        platforms.add(Platform(101, AABB(1480f, 810f, 40f, 70f), PlatformType.CHECKPOINT, false, isGraceMimic = false))
 
         // Optional elevated watchtower for Mimic Miniboss & Chest 3
         platforms.add(Platform(22, AABB(2120f, 710f, 260f, 24f), PlatformType.ONE_WAY))
 
+        // Site of Grace 3: The Deceitful Grace (GRACE MIMIC! Transforms when touched)
+        platforms.add(Platform(103, AABB(2240f, 810f, 40f, 70f), PlatformType.CHECKPOINT, false, isGraceMimic = true))
+
         // --- ZONE 3: Crimson Abyss Sanctum (2750 - 4200) — Continuous Boss Corridor ---
         platforms.add(Platform(30, AABB(2750f, 880f, 1450f, 320f), PlatformType.NORMAL))
 
-        // Second Site of Grace before the Crimson Sanctum Guardian
-        platforms.add(Platform(102, AABB(3280f, 810f, 40f, 70f), PlatformType.CHECKPOINT, false))
+        // Site of Grace 4: Crucible Bastion Sanctum (Safe sanctuary before Lord Malakor)
+        platforms.add(Platform(102, AABB(3300f, 810f, 40f, 70f), PlatformType.CHECKPOINT, false, isGraceMimic = false))
 
         // Optional high alcove for Chest 4 (Legendary Greatsword)
         platforms.add(Platform(33, AABB(3640f, 720f, 220f, 24f), PlatformType.ONE_WAY))
@@ -89,20 +96,20 @@ class Level {
         // Ceiling bounds
         platforms.add(Platform(50, AABB(0f, 0f, width, 40f), PlatformType.NORMAL))
 
-        // --- ENEMIES (Combat-focused progression across all 4 monster species) ---
+        // --- ENEMIES (Sanctuary-buffered spawns: strictly no enemies near Sites of Grace) ---
         enemies.clear()
         enemySpawns.clear()
-        val e1 = Enemy(1, 780f, 820f, EnemyType.GOBLIN, patrolMinX = 600f, patrolMaxX = 980f)
-        val e2 = Enemy(2, 1140f, 810f, EnemyType.SKELETON, patrolMinX = 1000f, patrolMaxX = 1320f)
-        val e3 = Enemy(3, 1760f, 810f, EnemyType.SKELETON, patrolMinX = 1580f, patrolMaxX = 1940f)
-        val e4 = Enemy(4, 2180f, 720f, EnemyType.FLYING_EYE, patrolMinX = 2000f, patrolMaxX = 2460f)
-        val e5 = Enemy(5, 2520f, 820f, EnemyType.GOBLIN, patrolMinX = 2360f, patrolMaxX = 2700f)
-        val e6 = Enemy(6, 3060f, 820f, EnemyType.MUSHROOM, patrolMinX = 2900f, patrolMaxX = 3240f)
-        val e7 = Enemy(7, 3480f, 795f, EnemyType.ELITE_GUARDIAN, patrolMinX = 3300f, patrolMaxX = 3760f)
-        val e8 = Enemy(8, 960f, 846f, EnemyType.SLIME, patrolMinX = 820f, patrolMaxX = 1120f)
-        val e9 = Enemy(9, 2040f, 846f, EnemyType.SLIME, patrolMinX = 1880f, patrolMaxX = 2240f)
-        val e10 = Enemy(10, 2900f, 846f, EnemyType.SLIME, patrolMinX = 2760f, patrolMaxX = 3100f)
-        val e11 = Enemy(11, 3920f, 795f, EnemyType.ELITE_GUARDIAN, patrolMinX = 3760f, patrolMaxX = 4120f).apply {
+        val e1 = Enemy(1, 800f, 820f, EnemyType.GOBLIN, patrolMinX = 720f, patrolMaxX = 980f)
+        val e8 = Enemy(8, 980f, 846f, EnemyType.SLIME, patrolMinX = 860f, patrolMaxX = 1120f)
+        val e2 = Enemy(2, 1240f, 810f, EnemyType.SKELETON, patrolMinX = 1140f, patrolMaxX = 1350f)
+        val e3 = Enemy(3, 1820f, 810f, EnemyType.SKELETON, patrolMinX = 1720f, patrolMaxX = 1960f)
+        val e9 = Enemy(9, 2040f, 846f, EnemyType.SLIME, patrolMinX = 1940f, patrolMaxX = 2140f)
+        val e4 = Enemy(4, 2420f, 720f, EnemyType.FLYING_EYE, patrolMinX = 2340f, patrolMaxX = 2560f)
+        val e5 = Enemy(5, 2640f, 820f, EnemyType.GOBLIN, patrolMinX = 2560f, patrolMaxX = 2740f)
+        val e10 = Enemy(10, 2920f, 846f, EnemyType.SLIME, patrolMinX = 2820f, patrolMaxX = 3060f)
+        val e6 = Enemy(6, 3080f, 820f, EnemyType.MUSHROOM, patrolMinX = 2960f, patrolMaxX = 3140f)
+        val e7 = Enemy(7, 3560f, 795f, EnemyType.ELITE_GUARDIAN, patrolMinX = 3480f, patrolMaxX = 3740f)
+        val e11 = Enemy(11, 3920f, 795f, EnemyType.ELITE_GUARDIAN, patrolMinX = 3780f, patrolMaxX = 4120f).apply {
             isZoneBoss = true
             bossTitle = "MALAKOR, CRIMSON ABYSS LORD"
             maxHp = 520f
@@ -118,17 +125,17 @@ class Level {
             }
         }
 
-        enemies.addAll(listOf(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11))
-        enemySpawns.add(Triple(e1, 780f, 820f))
-        enemySpawns.add(Triple(e2, 1140f, 810f))
-        enemySpawns.add(Triple(e3, 1760f, 810f))
-        enemySpawns.add(Triple(e4, 2180f, 720f))
-        enemySpawns.add(Triple(e5, 2520f, 820f))
-        enemySpawns.add(Triple(e6, 3060f, 820f))
-        enemySpawns.add(Triple(e7, 3480f, 795f))
-        enemySpawns.add(Triple(e8, 960f, 846f))
+        enemies.addAll(listOf(e1, e8, e2, e3, e9, e4, e5, e10, e6, e7, e11))
+        enemySpawns.add(Triple(e1, 800f, 820f))
+        enemySpawns.add(Triple(e8, 980f, 846f))
+        enemySpawns.add(Triple(e2, 1240f, 810f))
+        enemySpawns.add(Triple(e3, 1820f, 810f))
         enemySpawns.add(Triple(e9, 2040f, 846f))
-        enemySpawns.add(Triple(e10, 2900f, 846f))
+        enemySpawns.add(Triple(e4, 2420f, 720f))
+        enemySpawns.add(Triple(e5, 2640f, 820f))
+        enemySpawns.add(Triple(e10, 2920f, 846f))
+        enemySpawns.add(Triple(e6, 3080f, 820f))
+        enemySpawns.add(Triple(e7, 3560f, 795f))
         enemySpawns.add(Triple(e11, 3920f, 795f))
         assignRandomHiddenSlimeBoss()
 
@@ -240,6 +247,13 @@ class Level {
 
     fun respawnEnemies() {
         enemies.removeAll { it.isShadowEcho }
+        // Reset undefeated Grace Mimics back into disguised dormant state
+        for (platform in platforms) {
+            if (platform.isGraceMimic && !platform.isMimicDefeated) {
+                platform.isMimicAwakened = false
+                enemies.removeAll { it.isGraceMimic && it.graceMimicPlatformId == platform.id }
+            }
+        }
         for (spawn in enemySpawns) {
             val (enemy, sx, sy) = spawn
             enemy.reset(sx, sy)
@@ -315,6 +329,22 @@ class Level {
             enemy.update(dt, player, platforms, onEnemyAttackPlayer, onEnemyStaggered)
         }
 
+        // Check if any active Grace Mimic was defeated
+        for (platform in platforms) {
+            if (platform.isGraceMimic && platform.isMimicAwakened && !platform.isMimicDefeated) {
+                val mimic = enemies.firstOrNull { it.isGraceMimic && it.graceMimicPlatformId == platform.id }
+                if (mimic != null && !mimic.isAlive) {
+                    platform.isMimicDefeated = true
+                    platform.isActivated = true
+                    currentCheckpointX = platform.bounds.x
+                    currentCheckpointY = platform.bounds.top - player.height
+                    checkpointNotification = "✦ SITE OF GRACE PURIFIED & CONSECRATED ✦"
+                    checkpointNotificationTimer = 4.0f
+                    onCheckpointReached?.invoke()
+                }
+            }
+        }
+
         // Handle Checkpoint notification fade
         if (checkpointNotificationTimer > 0f) {
             checkpointNotificationTimer -= dt
@@ -377,6 +407,10 @@ class Level {
     private fun checkCheckpoints(player: Player) {
         for (platform in platforms) {
             if (platform.type == PlatformType.CHECKPOINT) {
+                // Deceitful Grace Mimics cannot be registered as checkpoints until purified
+                if (platform.isGraceMimic && !platform.isMimicDefeated) {
+                    continue
+                }
                 if (player.bounds.intersects(platform.bounds) ||
                     abs((player.bounds.x + player.width / 2f) - (platform.bounds.x + platform.bounds.width / 2f)) < 40f
                 ) {
@@ -391,6 +425,37 @@ class Level {
                 }
             }
         }
+    }
+
+    fun awakenGraceMimic(platform: Platform, player: Player, onPlayerDamaged: ((Float) -> Unit)? = null) {
+        if (platform.isMimicAwakened) return
+        platform.isMimicAwakened = true
+
+        val cx = platform.bounds.centerX
+        val cy = platform.bounds.bottom - 78f
+        val phantom = Enemy(
+            id = 200 + platform.id,
+            initialX = cx - 25f,
+            initialY = cy,
+            type = EnemyType.GRACE_MIMIC,
+            patrolMinX = (cx - 160f).coerceAtLeast(60f),
+            patrolMaxX = (cx + 160f).coerceAtMost(width - 60f)
+        ).apply {
+            isGraceMimic = true
+            graceMimicPlatformId = platform.id
+            isZoneBoss = true
+            bossTitle = "DECEITFUL GRACE PHANTOM"
+            vy = -260f
+            isAttacking = true
+            attackTimer = 0.28f
+            attackCooldown = 0.9f
+        }
+
+        enemies.add(phantom)
+        onPlayerDamaged?.invoke(16f) // Surprise burst shockwave
+        onGraceMimicAwakened?.invoke()
+        checkpointNotification = "⚠ DECEITFUL GRACE AWAKENED! ⚠"
+        checkpointNotificationTimer = 3.6f
     }
 
     fun checkInteractions(player: Player, onPlayerDamaged: ((Float) -> Unit)? = null) {
@@ -415,6 +480,10 @@ class Level {
             if (platform.type == PlatformType.CHECKPOINT) {
                 val dist = abs((player.bounds.x + player.width / 2f) - (platform.bounds.x + platform.bounds.width / 2f))
                 if (dist < 65f && abs(player.bounds.y - platform.bounds.y) < 80f) {
+                    if (platform.isGraceMimic && !platform.isMimicDefeated) {
+                        awakenGraceMimic(platform, player, onPlayerDamaged)
+                        return
+                    }
                     if (!platform.isActivated) {
                         platform.isActivated = true
                         currentCheckpointX = platform.bounds.x
@@ -455,6 +524,9 @@ class Level {
 
         for (platform in platforms) {
             if (platform.type == PlatformType.CHECKPOINT) {
+                if (platform.isGraceMimic && platform.isMimicAwakened && !platform.isMimicDefeated) {
+                    continue
+                }
                 val dist = abs(px - (platform.bounds.x + platform.bounds.width / 2f))
                 if (dist < 65f && abs(py - platform.bounds.y) < 80f) return true
             }

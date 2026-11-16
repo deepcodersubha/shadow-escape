@@ -111,6 +111,13 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             soundManager.playCheckpoint()
             hapticManager.vibrateCheckpoint()
         }
+        level.onGraceMimicAwakened = {
+            soundManager.playMimicGrowl()
+            soundManager.playVisceralStrike()
+            hapticManager.vibrateVisceralStrike()
+            renderer.triggerScreenShake(0.38f, 15f)
+            gameStatusText = "⚠ DECEITFUL GRACE AWAKENED! ⚠"
+        }
         level.onSwitchToggled = {
             soundManager.playSwitch()
             hapticManager.vibrateSwitch()

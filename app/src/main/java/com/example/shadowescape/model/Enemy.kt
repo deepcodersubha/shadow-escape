@@ -12,7 +12,8 @@ enum class EnemyType {
     GOBLIN,
     MUSHROOM,
     FLYING_EYE,
-    SLIME
+    SLIME,
+    GRACE_MIMIC
 }
 
 private data class EnemyStats(
@@ -47,6 +48,7 @@ class Enemy(
         EnemyType.MUSHROOM -> EnemyStats(36f, 60f, 90f, 44f, 65, 24f, 110f, 48f, 52f, 42f, 0.38f, 0.28f, 1.35f, false)
         EnemyType.FLYING_EYE -> EnemyStats(44f, 42f, 50f, 20f, 50, 17f, 150f, 75f, 52f, 40f, 0.30f, 0.26f, 1.15f, true)
         EnemyType.SLIME -> EnemyStats(42f, 34f, 60f, 26f, 45, 15f, 105f, 52f, 44f, 36f, 0.30f, 0.25f, 1.15f, false)
+        EnemyType.GRACE_MIMIC -> EnemyStats(50f, 78f, 240f, 85f, 380, 28f, 130f, 60f, 64f, 50f, 0.38f, 0.30f, 1.35f, false)
     }
 
     val width: Float get() = bounds.width
@@ -81,6 +83,11 @@ class Enemy(
     var onZoneBossPhase2: (() -> Unit)? = null
     var isShadowEcho: Boolean = false
     var shadowEchoEssence: Int = 0
+
+    // Grace Mimic (False Site of Grace encounter)
+    var isGraceMimic: Boolean = false
+    var graceMimicPlatformId: Int? = null
+    var isGraceMimicDefeated: Boolean = false
 
     // Status Effects (Bleed, Frostbite, Burn, Poison)
     var bleedBuildup: Float = 0f
@@ -172,9 +179,15 @@ class Enemy(
         val verticalLimit = if (isFlying) 240f else 140f
         val isVerticalMatch = abs(cy - py) < verticalLimit
 
-        if (isVerticalMatch && distToPlayer < 360f && player.isAlive) {
+        // Sanctuary Check: Consecrated Sites of Grace are sacred safe zones; enemies cannot aggro or enter
+        val inGraceSanctuary = !isGraceMimic && platforms.any {
+            it.type == PlatformType.CHECKPOINT && (!it.isGraceMimic || it.isMimicDefeated) &&
+            abs(it.bounds.centerX - px) < 190f && abs(it.bounds.bottom - py) < 150f
+        }
+
+        if (!inGraceSanctuary && isVerticalMatch && distToPlayer < 360f && player.isAlive) {
             isAggroed = true
-        } else if (distToPlayer > 520f || !player.isAlive) {
+        } else if (inGraceSanctuary || distToPlayer > 520f || !player.isAlive) {
             isAggroed = false
         }
 
@@ -235,6 +248,25 @@ class Enemy(
             if (isFlying) {
                 val targetHoverY = initialY + sin((animTime * 3.2f).toDouble()).toFloat() * 18f
                 vy = ((targetHoverY - bounds.y) * 4f).coerceIn(-80f, 80f)
+            }
+        }
+
+        // Sanctuary boundary leash: enemies cannot step within 180f of any consecrated Grace
+        if (!isGraceMimic) {
+            val nearestGrace = platforms.firstOrNull {
+                it.type == PlatformType.CHECKPOINT && (!it.isGraceMimic || it.isMimicDefeated) &&
+                abs(it.bounds.centerX - cx) < 180f
+            }
+            if (nearestGrace != null) {
+                if (nearestGrace.bounds.centerX > cx && vx > 0f) {
+                    vx = -patrolSpeed
+                    facingRight = false
+                    isAggroed = false
+                } else if (nearestGrace.bounds.centerX < cx && vx < 0f) {
+                    vx = patrolSpeed
+                    facingRight = true
+                    isAggroed = false
+                }
             }
         }
 

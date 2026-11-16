@@ -68,6 +68,48 @@ class EnemyAnimator(assetManager: AssetManager) {
     }
     private val slimeRect = RectF()
 
+    // Grace Mimic Ethereal Spectral Phantom Paints (Customizable placeholder)
+    private val gracePhantomBodyPaint = Paint().apply {
+        style = Paint.Style.FILL
+        isAntiAlias = true
+    }
+    private val gracePhantomAuraPaint = Paint().apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 3f
+        isAntiAlias = true
+    }
+    private val gracePhantomBladePaint = Paint().apply {
+        style = Paint.Style.FILL
+        isAntiAlias = true
+    }
+    private val gracePhantomBladeGlow = Paint().apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 3.5f
+        isAntiAlias = true
+    }
+    private val graceRunicCrownPaint = Paint().apply {
+        color = Color.parseColor("#F59E0B")
+        style = Paint.Style.STROKE
+        strokeWidth = 2.5f
+        isAntiAlias = true
+    }
+    private val graceRunicCorePaint = Paint().apply {
+        color = Color.parseColor("#FEF3C7")
+        style = Paint.Style.FILL
+        isAntiAlias = true
+    }
+    private val graceEyePaint = Paint().apply {
+        color = Color.parseColor("#C084FC")
+        style = Paint.Style.FILL
+        isAntiAlias = true
+    }
+    private val graceEyeCorePaint = Paint().apply {
+        color = Color.parseColor("#FFFFFF")
+        style = Paint.Style.FILL
+        isAntiAlias = true
+    }
+    private val gracePhantomRect = RectF()
+
     init {
         loadSet(
             assetManager,
@@ -124,6 +166,18 @@ class EnemyAnimator(assetManager: AssetManager) {
             atkFrames = 15,
             hitFrames = 5,
             deathFrames = 22
+        )
+        // Grace Mimic: auto-loaded when sprite assets are placed in assets/monsters/grace_mimic/
+        loadSet(
+            assetManager,
+            key = "grace_mimic",
+            dir = "monsters/grace_mimic",
+            idleName = "idle.png", idleFrames = 4,
+            moveName = "run.png", moveFrames = 8,
+            atk1Frames = 8,
+            atk2Frames = 8,
+            hitFrames = 4,
+            deathFrames = 4
         )
     }
 
@@ -207,12 +261,21 @@ class EnemyAnimator(assetManager: AssetManager) {
             return true
         }
 
+        if (enemy.type == EnemyType.GRACE_MIMIC) {
+            val customSet = spriteSets["grace_mimic"]
+            if (customSet == null) {
+                drawGraceMimicPlaceholder(canvas, enemy, alpha)
+                return true
+            }
+        }
+
         val key = when (enemy.type) {
             EnemyType.SKELETON, EnemyType.HOLLOW_SOLDIER, EnemyType.ELITE_GUARDIAN -> "skeleton"
             EnemyType.GOBLIN -> "goblin"
             EnemyType.MUSHROOM -> "mushroom"
             EnemyType.FLYING_EYE -> "flying_eye"
             EnemyType.SLIME -> "demon_slime"
+            EnemyType.GRACE_MIMIC -> "grace_mimic"
         }
         val set = spriteSets[key] ?: return false
 
@@ -220,6 +283,7 @@ class EnemyAnimator(assetManager: AssetManager) {
         val scale = when {
             isDemonBoss -> 1.50f
             enemy.type == EnemyType.ELITE_GUARDIAN -> 2.10f
+            enemy.type == EnemyType.GRACE_MIMIC -> 1.85f
             enemy.type == EnemyType.SKELETON || enemy.type == EnemyType.HOLLOW_SOLDIER -> 1.68f
             enemy.type == EnemyType.GOBLIN -> 1.88f
             enemy.type == EnemyType.MUSHROOM -> 1.90f
@@ -361,6 +425,104 @@ class EnemyAnimator(assetManager: AssetManager) {
             val eyeCenter = eb.centerX + dir * 6f
             canvas.drawCircle(eyeCenter - 5f, eyeY, 2.8f, slimeEyePaint)
             canvas.drawCircle(eyeCenter + 5f, eyeY, 2.8f, slimeEyePaint)
+        }
+    }
+
+    private fun drawGraceMimicPlaceholder(canvas: Canvas, enemy: Enemy, alpha: Int) {
+        val eb = enemy.bounds
+        val deathFade = if (!enemy.isAlive) (1f - enemy.deathFadeTimer / 1.2f).coerceIn(0f, 1f) else 1f
+        if (deathFade <= 0f) return
+
+        val a = (alpha * deathFade).toInt().coerceIn(0, 255)
+        val dir = if (enemy.facingRight) 1f else -1f
+        val breathe = if (enemy.isAlive) sin(enemy.animTime * 4.5f) * 3f else 0f
+        val cx = eb.centerX
+        val bottomY = eb.bottom
+
+        // 1. Hovering Corrupted Grace Crown / Runic Ring
+        val crownY = eb.top - 16f + sin(enemy.animTime * 3.5f) * 3.5f
+        graceRunicCrownPaint.alpha = a
+        graceRunicCorePaint.alpha = a
+        canvas.drawCircle(cx, crownY, 14f, graceRunicCrownPaint)
+        // Orbiting rune nodes
+        for (i in 0 until 4) {
+            val angle = enemy.animTime * 2.2f + (i * Math.PI / 2.0)
+            val rx = cx + (kotlin.math.cos(angle) * 14.0).toFloat()
+            val ry = crownY + (kotlin.math.sin(angle) * 7.0).toFloat()
+            canvas.drawCircle(rx, ry, 2.5f, graceRunicCorePaint)
+        }
+
+        // 2. Spectral Phantom Robed Body
+        val w = eb.width * (if (!enemy.isAlive) (1f + (1f - deathFade) * 0.3f) else 1f)
+        val h = (eb.height + breathe) * deathFade
+        gracePhantomRect.set(cx - w / 2f, bottomY - h, cx + w / 2f, bottomY)
+
+        val isHurt = enemy.hurtTimer > 0f
+        gracePhantomBodyPaint.color = if (isHurt) Color.parseColor("#FDA4AF") else Color.parseColor("#1E1B4B")
+        gracePhantomBodyPaint.alpha = a
+        gracePhantomAuraPaint.color = if (isHurt) Color.parseColor("#F43F5E") else Color.parseColor("#7C3AED")
+        gracePhantomAuraPaint.alpha = (a * 0.85f).toInt()
+
+        // Draw spectral shadow mantle
+        canvas.drawRoundRect(gracePhantomRect, 18f, 18f, gracePhantomBodyPaint)
+        canvas.drawRoundRect(gracePhantomRect, 18f, 18f, gracePhantomAuraPaint)
+
+        // Spectral Cowl Hood
+        val hoodTop = gracePhantomRect.top
+        val hoodH = 26f
+        canvas.drawCircle(cx, hoodTop + hoodH / 2f, 16f, gracePhantomBodyPaint)
+        canvas.drawCircle(cx, hoodTop + hoodH / 2f, 16f, gracePhantomAuraPaint)
+
+        // 3. Piercing Violet Eyes beneath the cowl
+        if (enemy.isAlive) {
+            val eyeX = cx + dir * 6f
+            val eyeY = hoodTop + 13f
+            graceEyePaint.alpha = a
+            graceEyeCorePaint.alpha = a
+            canvas.drawCircle(eyeX - 4f, eyeY, 3.5f, graceEyePaint)
+            canvas.drawCircle(eyeX + 4f, eyeY, 3.5f, graceEyePaint)
+            canvas.drawCircle(eyeX - 4f, eyeY, 1.4f, graceEyeCorePaint)
+            canvas.drawCircle(eyeX + 4f, eyeY, 1.4f, graceEyeCorePaint)
+        }
+
+        // 4. Corrupted Greatsword of the Grace
+        if (enemy.isAlive) {
+            val bladeX = cx + dir * 24f
+            val bladeTop = if (enemy.isAttacking) bottomY - 20f else bottomY - 60f + breathe
+            val bladeBottom = if (enemy.isAttacking) bottomY + 10f else bottomY - 6f
+            val bladeW = 7f
+
+            gracePhantomBladePaint.color = if (enemy.isAttacking) Color.parseColor("#FDE047") else Color.parseColor("#FBBF24")
+            gracePhantomBladePaint.alpha = a
+            gracePhantomBladeGlow.color = if (enemy.isAttacking) Color.parseColor("#EF4444") else Color.parseColor("#A855F7")
+            gracePhantomBladeGlow.alpha = (a * 0.9f).toInt()
+
+            // Greatsword blade line & crossguard
+            canvas.drawLine(bladeX, bladeTop, bladeX + dir * (if (enemy.isAttacking) 32f else 6f), bladeBottom, gracePhantomBladeGlow)
+            canvas.drawLine(bladeX, bladeTop, bladeX + dir * (if (enemy.isAttacking) 32f else 6f), bladeBottom, gracePhantomBladePaint)
+            // Crossguard
+            canvas.drawLine(bladeX - 8f, bladeBottom - 12f, bladeX + 8f, bladeBottom - 12f, gracePhantomBladePaint)
+
+            // Attack Slash Arc effect
+            if (enemy.isAttacking) {
+                val slashPaint = Paint().apply {
+                    color = Color.parseColor("#FACC15")
+                    style = Paint.Style.STROKE
+                    strokeWidth = 4f
+                    this.alpha = (a * 0.85f).toInt()
+                    isAntiAlias = true
+                }
+                canvas.drawArc(
+                    bladeX - 30f,
+                    bottomY - 60f,
+                    bladeX + 50f,
+                    bottomY + 20f,
+                    if (enemy.facingRight) 300f else 120f,
+                    120f,
+                    false,
+                    slashPaint
+                )
+            }
         }
     }
 }

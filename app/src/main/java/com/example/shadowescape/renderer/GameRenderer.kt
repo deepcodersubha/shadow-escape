@@ -1393,9 +1393,17 @@ class GameRenderer(assetManager: AssetManager) {
                 }
 
                 PlatformType.CHECKPOINT -> {
+                    // If Grace Mimic has emerged and is fighting, do not render static sword-in-stone
+                    if (platform.isGraceMimic && platform.isMimicAwakened && !platform.isMimicDefeated) {
+                        continue
+                    }
                     if (tilesetRenderer.drawCheckpoint(canvas, b, platform.isActivated)) {
                         if (platform.isActivated) {
                             canvas.drawCircle(b.centerX, b.bottom - 52f, 24f, exitGlowPaint)
+                        } else if (platform.isGraceMimic) {
+                            // Deceitful Grace ominous tell: faint violet flicker particle
+                            val flickerY = b.bottom - 54f + sin(globalTime * 6f) * 4f
+                            canvas.drawCircle(b.centerX, flickerY, 8f + sin(globalTime * 8f) * 3f, exitGlowPaint)
                         }
                     } else {
                         val midX = b.centerX
@@ -2590,9 +2598,13 @@ class GameRenderer(assetManager: AssetManager) {
 
             when (platform.type) {
                 PlatformType.CHECKPOINT -> {
-                    val radius = (if (platform.isActivated) 320f else 160f) * lightScale
-                    lightDestRect.set(cx - radius, cy - radius, cx + radius, cy + radius)
-                    lCanvas.drawBitmap(lightCookieBitmap, null, lightDestRect, lightCutoutPaint)
+                    if (platform.isGraceMimic && platform.isMimicAwakened && !platform.isMimicDefeated) {
+                        // Static platform light suspended while fighting
+                    } else {
+                        val radius = (if (platform.isActivated) 320f else 160f) * lightScale
+                        lightDestRect.set(cx - radius, cy - radius, cx + radius, cy + radius)
+                        lCanvas.drawBitmap(lightCookieBitmap, null, lightDestRect, lightCutoutPaint)
+                    }
                 }
 
                 PlatformType.SWITCH -> {
@@ -2689,9 +2701,14 @@ class GameRenderer(assetManager: AssetManager) {
 
             when (platform.type) {
                 PlatformType.CHECKPOINT -> {
-                    val r = 200f
-                    lightDestRect.set(ox - r, oy - r, ox + r, oy + r)
-                    canvas.drawBitmap(cyanBloomCookie, null, lightDestRect, bloomPaint)
+                    if (platform.isGraceMimic && platform.isMimicAwakened && !platform.isMimicDefeated) {
+                        // Static platform bloom suspended while fighting
+                    } else {
+                        val r = 200f
+                        lightDestRect.set(ox - r, oy - r, ox + r, oy + r)
+                        val cookie = if (platform.isGraceMimic && !platform.isMimicDefeated) purpleBloomCookie else cyanBloomCookie
+                        canvas.drawBitmap(cookie, null, lightDestRect, bloomPaint)
+                    }
                 }
 
                 PlatformType.SWITCH -> {
