@@ -13,36 +13,39 @@ import com.example.shadowescape.model.ChestState
 import com.example.shadowescape.model.ChestType
 import com.example.shadowescape.model.TreasureChest
 import com.example.shadowescape.physics.AABB
+import kotlin.math.sin
 
 class TilesetRenderer(assetManager: AssetManager) {
 
-    private val dungeonStone: Bitmap? = loadBitmap(assetManager, "tiles/dungeon_stone.png")
-    private val sewerGreen: Bitmap? = loadBitmap(assetManager, "tiles/sewer_green.png")
-    private val crimsonAbyss: Bitmap? = loadBitmap(assetManager, "tiles/crimson_abyss.png")
+    // 3 Progressive Elden Ring-style area tilesets
+    private val ashenSepulcher: Bitmap? = loadBitmap(assetManager, "tiles/ashen_sepulcher.png")
+    private val glintstoneCrypt: Bitmap? = loadBitmap(assetManager, "tiles/glintstone_crypt.png")
+    private val crucibleBastion: Bitmap? = loadBitmap(assetManager, "tiles/crucible_bastion.png")
     private val dungeonProps: Bitmap? = loadBitmap(assetManager, "tiles/dungeon_props.png")
+    private val dungeonStone: Bitmap? = loadBitmap(assetManager, "tiles/dungeon_stone.png")
 
     private val srcRect = Rect()
     private val destRect = RectF()
 
     private val tilePaint = Paint().apply {
-        isFilterBitmap = false
+        isFilterBitmap = true
         isAntiAlias = false
     }
 
     private val gildedChestPaint = Paint().apply {
-        isFilterBitmap = false
+        isFilterBitmap = true
         isAntiAlias = false
         colorFilter = LightingColorFilter(Color.rgb(255, 225, 130), Color.rgb(35, 20, 0))
     }
 
     private val ironChestPaint = Paint().apply {
-        isFilterBitmap = false
+        isFilterBitmap = true
         isAntiAlias = false
         colorFilter = LightingColorFilter(Color.rgb(200, 215, 235), Color.rgb(10, 15, 25))
     }
 
     private val activeSwordPaint = Paint().apply {
-        isFilterBitmap = false
+        isFilterBitmap = true
         isAntiAlias = false
         colorFilter = LightingColorFilter(Color.rgb(255, 255, 255), Color.rgb(25, 45, 55))
     }
@@ -55,17 +58,29 @@ class TilesetRenderer(assetManager: AssetManager) {
         }
     }
 
-    private fun sheetForX(x: Float): Bitmap? {
+    enum class AreaZone {
+        ASHEN_SEPULCHER,
+        GLINTSTONE_CRYPT,
+        CRUCIBLE_BASTION
+    }
+
+    fun zoneForX(x: Float): AreaZone {
         return when {
-            x >= 2750f -> crimsonAbyss ?: dungeonStone
-            x >= 1380f -> sewerGreen ?: dungeonStone
-            else -> dungeonStone
+            x >= 2800f -> AreaZone.CRUCIBLE_BASTION
+            x >= 1400f -> AreaZone.GLINTSTONE_CRYPT
+            else -> AreaZone.ASHEN_SEPULCHER
+        }
+    }
+
+    private fun sheetForZone(zone: AreaZone): Bitmap? {
+        return when (zone) {
+            AreaZone.CRUCIBLE_BASTION -> crucibleBastion ?: dungeonStone
+            AreaZone.GLINTSTONE_CRYPT -> glintstoneCrypt ?: dungeonStone
+            AreaZone.ASHEN_SEPULCHER -> ashenSepulcher ?: dungeonStone
         }
     }
 
     fun drawNormalPlatform(canvas: Canvas, b: AABB, viewLeft: Float, viewRight: Float): Boolean {
-        if (dungeonStone == null) return false
-
         val tileSize = 40f
         val startX = maxOf(b.left, viewLeft - tileSize)
         val endX = minOf(b.right, viewRight + tileSize)
@@ -80,23 +95,55 @@ class TilesetRenderer(assetManager: AssetManager) {
             val x = b.left + col * tileSize
             if (x >= b.right) break
             val w = minOf(tileSize, b.right - x)
-            val sheet = sheetForX(x + w * 0.5f) ?: continue
+            val zone = zoneForX(x + w * 0.5f)
+            val sheet = sheetForZone(zone) ?: continue
 
             var row = 0
             var y = b.top
             while (y < maxY) {
                 val h = minOf(tileSize, maxY - y)
-                val variant = (col % 3) * 16
-                if (!isCeiling && row == 0) {
-                    // Top surface brick edge (cols 1..3, row 0)
-                    val sx = 16 + variant
-                    srcRect.set(sx, 0, sx + 16, 16)
-                } else {
-                    // Inner brick fill (cols 1..2, row 4..5)
-                    val sx = 16 + (col % 2) * 16
-                    val sy = 64 + (row % 2) * 16
-                    srcRect.set(sx, sy, sx + 16, sy + 16)
+
+                when (zone) {
+                    AreaZone.ASHEN_SEPULCHER -> {
+                        if (!isCeiling && row == 0) {
+                            // Top surface stone flagstone (128x128 tiles at y=256 in 1024x1024 sheet)
+                            val variant = (col % 4) * 128
+                            srcRect.set(variant, 256, variant + 128, 384)
+                        } else {
+                            // Inner dark masonry brick fill (y=768)
+                            val variant = (col % 2) * 128
+                            val sy = if (row % 2 == 0) 768 else 896
+                            srcRect.set(variant, sy, variant + 128, sy + 128)
+                        }
+                    }
+
+                    AreaZone.GLINTSTONE_CRYPT -> {
+                        if (!isCeiling && row == 0) {
+                            // Submerged aquatic brick with cyan highlight (y=76, step=64)
+                            val sx = 16 + (col % 3) * 64
+                            srcRect.set(sx, 76, sx + 64, 140)
+                        } else {
+                            // Dark aqueduct slate bricks (y=250)
+                            val sx = 16 + (col % 2) * 64
+                            val sy = 250 + (row % 2) * 64
+                            srcRect.set(sx, sy, sx + 64, sy + 64)
+                        }
+                    }
+
+                    AreaZone.CRUCIBLE_BASTION -> {
+                        if (!isCeiling && row == 0) {
+                            // Glowing molten rock platform surface with fiery magma mortar (y=96)
+                            val sx = 48 + (col % 3) * 64
+                            srcRect.set(sx, 96, sx + 64, 160)
+                        } else {
+                            // Dark volcanic charcoal basalt fill (y=160)
+                            val sx = 48 + (col % 2) * 64
+                            val sy = 160 + (row % 2) * 64
+                            srcRect.set(sx, sy, sx + 64, sy + 64)
+                        }
+                    }
                 }
+
                 destRect.set(x, y, x + w, y + h)
                 canvas.drawBitmap(sheet, srcRect, destRect, tilePaint)
                 y += tileSize
@@ -107,7 +154,8 @@ class TilesetRenderer(assetManager: AssetManager) {
     }
 
     fun drawOneWayPlatform(canvas: Canvas, b: AABB): Boolean {
-        val sheet = sheetForX(b.centerX) ?: return false
+        val zone = zoneForX(b.centerX)
+        val sheet = sheetForZone(zone) ?: return false
         val tileSize = 36f
         var x = b.left
         var col = 0
@@ -115,22 +163,29 @@ class TilesetRenderer(assetManager: AssetManager) {
 
         while (x < b.right) {
             val w = minOf(tileSize, b.right - x)
-            val sx = when {
-                col == 0 -> 96
-                x + tileSize >= b.right -> 144
-                else -> 112 + (col % 2) * 16
+
+            when (zone) {
+                AreaZone.ASHEN_SEPULCHER -> {
+                    // Carved stone beam ledge
+                    val sx = 128 + (col % 2) * 128
+                    srcRect.set(sx, 384, sx + 128, 448)
+                }
+
+                AreaZone.GLINTSTONE_CRYPT -> {
+                    // Carved marble cornice platform
+                    val sx = 40 + (col % 3) * 64
+                    srcRect.set(sx, 376, sx + 64, 436)
+                }
+
+                AreaZone.CRUCIBLE_BASTION -> {
+                    // Heated iron floor grate
+                    val sx = 250 + (col % 2) * 64
+                    srcRect.set(sx, 560, sx + 64, 624)
+                }
             }
-            srcRect.set(sx, 128, sx + 16, 144)
+
             destRect.set(x, b.top, x + w, b.top + 30f)
             canvas.drawBitmap(sheet, srcRect, destRect, tilePaint)
-
-            // Corner support struts under left/right ends
-            if (col == 0 || x + tileSize >= b.right) {
-                val strutSx = if (col == 0) 96 else 144
-                srcRect.set(strutSx, 144, strutSx + 16, 160)
-                destRect.set(x, b.top + 26f, x + w, b.top + 54f)
-                canvas.drawBitmap(sheet, srcRect, destRect, tilePaint)
-            }
 
             x += tileSize
             col++
@@ -140,8 +195,7 @@ class TilesetRenderer(assetManager: AssetManager) {
     }
 
     fun drawCheckpoint(canvas: Canvas, b: AABB, isActivated: Boolean): Boolean {
-        val sheet = if (b.centerX >= 2750f) (crimsonAbyss ?: dungeonStone) else dungeonStone
-        sheet ?: return false
+        val sheet = dungeonStone ?: return false
         srcRect.set(160, 32, 176, 64)
         destRect.set(b.centerX - 22f, b.bottom - 88f, b.centerX + 22f, b.bottom)
         val p = if (isActivated) activeSwordPaint else tilePaint
@@ -150,15 +204,42 @@ class TilesetRenderer(assetManager: AssetManager) {
     }
 
     fun drawHazard(canvas: Canvas, b: AABB): Boolean {
-        val sheet = if (b.centerX >= 2750f) crimsonAbyss ?: dungeonStone else dungeonStone
-        sheet ?: return false
-        val spikeW = 48f
+        val zone = zoneForX(b.centerX)
+        val sheet = sheetForZone(zone) ?: return false
+        val spikeW = 44f
         var x = b.left
+
         while (x < b.right) {
             val w = minOf(spikeW, b.right - x)
-            srcRect.set(224, 112, 256, 128)
-            destRect.set(x, b.bottom - 28f, x + w, b.bottom)
-            canvas.drawBitmap(sheet, srcRect, destRect, tilePaint)
+            when (zone) {
+                AreaZone.CRUCIBLE_BASTION -> {
+                    // Glowing bubbling molten lava pool hazard
+                    srcRect.set(750, 460, 950, 500)
+                    destRect.set(x, b.bottom - 32f, x + w, b.bottom + 4f)
+                }
+
+                AreaZone.GLINTSTONE_CRYPT -> {
+                    // Cyan crystal / icicle stalagmites
+                    srcRect.set(510, 450, 620, 500)
+                    destRect.set(x, b.bottom - 30f, x + w, b.bottom)
+                }
+
+                AreaZone.ASHEN_SEPULCHER -> {
+                    // Classical sharp stone / iron ground spikes
+                    dungeonStone?.let { ds ->
+                        srcRect.set(224, 112, 256, 128)
+                        destRect.set(x, b.bottom - 28f, x + w, b.bottom)
+                        canvas.drawBitmap(ds, srcRect, destRect, tilePaint)
+                    } ?: run {
+                        srcRect.set(0, 0, 64, 64)
+                        destRect.set(x, b.bottom - 28f, x + w, b.bottom)
+                        canvas.drawBitmap(sheet, srcRect, destRect, tilePaint)
+                    }
+                }
+            }
+            if (zone != AreaZone.ASHEN_SEPULCHER || dungeonStone == null) {
+                canvas.drawBitmap(sheet, srcRect, destRect, tilePaint)
+            }
             x += spikeW
         }
         return true
@@ -221,28 +302,72 @@ class TilesetRenderer(assetManager: AssetManager) {
     fun drawZoneDecor(canvas: Canvas, viewLeft: Float, viewRight: Float) {
         val groundY = 880f
 
-        // Zone 1: Dungeon Stone barrels, pots, skulls
-        dungeonStone?.let { stone ->
-            drawPropIfVisible(canvas, stone, 128, 80, 160, 128, 210f, groundY, 72f, 108f, viewLeft, viewRight)
-            drawPropIfVisible(canvas, stone, 160, 112, 176, 128, 530f, groundY, 36f, 36f, viewLeft, viewRight)
-            drawPropIfVisible(canvas, stone, 224, 32, 256, 48, 1020f, groundY, 68f, 34f, viewLeft, viewRight)
-            drawPropIfVisible(canvas, stone, 192, 64, 208, 128, 550f, 180f, 32f, 140f, viewLeft, viewRight)
-            drawPropIfVisible(canvas, stone, 192, 64, 208, 128, 1180f, 160f, 32f, 140f, viewLeft, viewRight)
+        // ========================================================
+        // AREA 1: Ashen Sepulcher (0..1400f)
+        // Ancient gravestones, wall torches, fluted pillars, chains
+        // ========================================================
+        ashenSepulcher?.let { ashen ->
+            // Lit Wall-mounted iron torches (with subtle flickering light)
+            drawPropIfVisible(canvas, ashen, 520, 750, 610, 870, 180f, 620f, 44f, 72f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, ashen, 520, 750, 610, 870, 580f, 620f, 44f, 72f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, ashen, 520, 750, 610, 870, 940f, 620f, 44f, 72f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, ashen, 520, 750, 610, 870, 1260f, 620f, 44f, 72f, viewLeft, viewRight)
+
+            // Ancient Stone Gravestones with runic inscriptions
+            drawPropIfVisible(canvas, ashen, 740, 505, 875, 625, 420f, groundY, 56f, 72f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, ashen, 740, 505, 875, 625, 860f, groundY, 56f, 72f, viewLeft, viewRight)
+
+            // Tall fluted catacomb pillars
+            drawPropIfVisible(canvas, ashen, 840, 750, 920, 990, 310f, groundY, 48f, 130f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, ashen, 840, 750, 920, 990, 740f, groundY, 48f, 130f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, ashen, 840, 750, 920, 990, 1120f, groundY, 48f, 130f, viewLeft, viewRight)
+
+            // Hanging iron chains from upper arches
+            drawPropIfVisible(canvas, ashen, 896, 512, 980, 768, 640f, 260f, 36f, 120f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, ashen, 896, 512, 980, 768, 1020f, 260f, 36f, 120f, viewLeft, viewRight)
         }
 
-        // Zone 2: Sewer Green grates & pipes
-        sewerGreen?.let { sewer ->
-            drawPropIfVisible(canvas, sewer, 128, 160, 192, 208, 1580f, groundY, 130f, 96f, viewLeft, viewRight)
-            drawPropIfVisible(canvas, sewer, 128, 160, 192, 208, 2320f, groundY, 130f, 96f, viewLeft, viewRight)
-            drawPropIfVisible(canvas, sewer, 96, 0, 128, 80, 1850f, 220f, 64f, 160f, viewLeft, viewRight)
+        // ========================================================
+        // AREA 2: Glintstone Crypt (1400..2800f)
+        // Glowing cyan crystal clusters, dripping stalactites, arches
+        // ========================================================
+        glintstoneCrypt?.let { glint ->
+            // Bioluminescent Glintstone crystal clusters sprouting from rocks
+            drawPropIfVisible(canvas, glint, 630, 80, 700, 150, 1520f, groundY, 52f, 52f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, glint, 710, 80, 790, 150, 1880f, groundY, 64f, 56f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, glint, 890, 80, 970, 150, 2150f, groundY, 68f, 58f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, glint, 710, 80, 790, 150, 2480f, groundY, 64f, 56f, viewLeft, viewRight)
+
+            // Dripping ceiling stalactites
+            drawPropIfVisible(canvas, glint, 505, 340, 625, 460, 1680f, 260f, 56f, 96f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, glint, 505, 340, 625, 460, 2040f, 260f, 56f, 96f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, glint, 505, 340, 625, 460, 2380f, 260f, 56f, 96f, viewLeft, viewRight)
+
+            // Submerged crystal colonnade pillars
+            drawPropIfVisible(canvas, glint, 380, 690, 430, 810, 1780f, groundY, 44f, 110f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, glint, 380, 690, 430, 810, 2260f, groundY, 44f, 110f, viewLeft, viewRight)
         }
 
-        // Zone 3: Crimson Abyss skulls & flesh spires
-        crimsonAbyss?.let { abyss ->
-            drawPropIfVisible(canvas, abyss, 224, 32, 256, 48, 2940f, groundY, 72f, 36f, viewLeft, viewRight)
-            drawPropIfVisible(canvas, abyss, 128, 48, 160, 96, 3240f, groundY, 70f, 102f, viewLeft, viewRight)
-            drawPropIfVisible(canvas, abyss, 224, 32, 256, 48, 3680f, groundY, 72f, 36f, viewLeft, viewRight)
-            drawPropIfVisible(canvas, abyss, 224, 0, 256, 24, 3480f, 680f, 64f, 48f, viewLeft, viewRight)
+        // ========================================================
+        // AREA 3: Crucible Bastion (2800..4200f)
+        // Stone gargoyles, glowing runic pillars, blazing braziers
+        // ========================================================
+        crucibleBastion?.let { crucible ->
+            // Carved stone gargoyle statues perched on bastions
+            drawPropIfVisible(canvas, crucible, 500, 500, 595, 620, 2960f, groundY, 68f, 78f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, crucible, 500, 500, 595, 620, 3520f, groundY, 68f, 78f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, crucible, 500, 500, 595, 620, 3880f, groundY, 72f, 82f, viewLeft, viewRight)
+
+            // Fiery Runic Pillars inscribed with glowing molten glyphs
+            drawPropIfVisible(canvas, crucible, 600, 320, 660, 500, 3120f, groundY, 48f, 130f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, crucible, 600, 320, 660, 500, 3700f, groundY, 48f, 130f, viewLeft, viewRight)
+
+            // Blazing ritual braziers with crackling fire
+            drawPropIfVisible(canvas, crucible, 505, 630, 575, 720, 3320f, groundY, 52f, 62f, viewLeft, viewRight)
+            drawPropIfVisible(canvas, crucible, 505, 630, 575, 720, 3960f, groundY, 52f, 62f, viewLeft, viewRight)
+
+            // Tattered war banners of the Crucible
+            drawPropIfVisible(canvas, crucible, 600, 810, 650, 920, 3420f, 680f, 38f, 84f, viewLeft, viewRight)
         }
     }
 
