@@ -389,10 +389,12 @@ class Player(startX: Float, startY: Float) {
         inventory.clear()
         inventory.add(origin.startingWeapon)
         val cyclingRoster = listOf(
+            Weapons.PALE_ECLIPSE_GREATSWORD,
             Weapons.SHADOW_KATANA,
             Weapons.OBSIDIAN_DAGGER,
             Weapons.STEEL_BROADSWORD,
             Weapons.IRON_SPEAR,
+            Weapons.NIGHTPROWLER_TALON,
             Weapons.IRON_BATTLE_AXE,
             Weapons.EXECUTIONER_GREATSWORD,
             Weapons.GOLDEN_WARHAMMER,

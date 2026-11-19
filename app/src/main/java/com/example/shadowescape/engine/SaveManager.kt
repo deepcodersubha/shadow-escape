@@ -53,16 +53,21 @@ object SaveManager {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         if (!prefs.getBoolean("has_save", false)) return null
 
-        val originId = prefs.getString("origin_id", "shinobi") ?: "shinobi"
-        val origin = CharacterOrigins.ALL.find { it.id == originId } ?: CharacterOrigins.SHADOW_SHINOBI
+        val vig = prefs.getInt("vigor", 10)
+        val end = prefs.getInt("endurance", 10)
+        val str = prefs.getInt("strength", 10)
+        val agi = prefs.getInt("agility", 10)
+        val intVal = prefs.getInt("intelligence", 10)
+        val originId = prefs.getString("origin_id", "") ?: ""
+        val origin = CharacterOrigins.ALL.find { it.id == originId } ?: CharacterOrigins.deriveClass(vig, end, str, agi, intVal)
         player.applyOrigin(origin)
 
         player.stats.level = prefs.getInt("level", origin.startingLevel)
-        player.stats.vigor = prefs.getInt("vigor", origin.vigor)
-        player.stats.endurance = prefs.getInt("endurance", origin.endurance)
-        player.stats.strength = prefs.getInt("strength", origin.strength)
-        player.stats.agility = prefs.getInt("agility", origin.agility)
-        player.stats.intelligence = prefs.getInt("intelligence", origin.intelligence)
+        player.stats.vigor = vig
+        player.stats.endurance = end
+        player.stats.strength = str
+        player.stats.agility = agi
+        player.stats.intelligence = intVal
         player.stats.essence = prefs.getInt("essence", 150)
         player.stats.bloodPactActive = prefs.getBoolean("blood_pact", false)
         player.stats.asceticPactActive = prefs.getBoolean("ascetic_pact", false)

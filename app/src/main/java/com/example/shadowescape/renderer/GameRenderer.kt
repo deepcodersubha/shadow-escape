@@ -840,6 +840,63 @@ class GameRenderer(assetManager: AssetManager) {
         typeface = Typeface.DEFAULT_BOLD
     }
 
+    // Interactive Stat Allocation Terminal Paints
+    private val originStatBtnBg = Paint().apply {
+        color = Color.parseColor("#EE1E293B")
+        isAntiAlias = true
+    }
+    private val originStatBtnBorder = Paint().apply {
+        color = Color.parseColor("#38BDF8")
+        style = Paint.Style.STROKE
+        strokeWidth = 2f
+        isAntiAlias = true
+    }
+    private val originStatBtnText = Paint().apply {
+        color = Color.WHITE
+        textSize = 20f
+        isAntiAlias = true
+        typeface = Typeface.DEFAULT_BOLD
+        textAlign = Paint.Align.CENTER
+    }
+    private val originPointsPillBg = Paint().apply {
+        color = Color.parseColor("#EE0F172A")
+        isAntiAlias = true
+    }
+    private val originPointsPillBorder = Paint().apply {
+        color = Color.parseColor("#F59E0B")
+        style = Paint.Style.STROKE
+        strokeWidth = 2f
+        isAntiAlias = true
+    }
+    private val originPointsPillText = Paint().apply {
+        color = Color.parseColor("#FEF08A")
+        textSize = 14f
+        isAntiAlias = true
+        typeface = Typeface.DEFAULT_BOLD
+        textAlign = Paint.Align.CENTER
+    }
+    private val originPresetActiveBg = Paint().apply {
+        color = Color.parseColor("#DD0284C7")
+        isAntiAlias = true
+    }
+    private val originPresetInactiveBg = Paint().apply {
+        color = Color.parseColor("#AA1E293B")
+        isAntiAlias = true
+    }
+    private val originPresetBorder = Paint().apply {
+        color = Color.parseColor("#38BDF8")
+        style = Paint.Style.STROKE
+        strokeWidth = 1.8f
+        isAntiAlias = true
+    }
+    private val originPresetText = Paint().apply {
+        color = Color.WHITE
+        textSize = 12.5f
+        isAntiAlias = true
+        typeface = Typeface.DEFAULT_BOLD
+        textAlign = Paint.Align.CENTER
+    }
+
     // Dead Cells Character Origin Avatar Bitmaps & Reusable Objects (0 heap allocations in render loop)
     private val avatarBitmaps = mutableMapOf<String, Bitmap>()
     private val avatarFrameRect = RectF()
@@ -2774,18 +2831,16 @@ class GameRenderer(assetManager: AssetManager) {
         val barH = 10f
 
         // Draw Player Origin Avatar Emblem Crest
-        val originId = player.currentOrigin.id
-        val avatarBmp = avatarBitmaps[originId]
+        val origin = player.currentOrigin
+        val avatarBmp = avatarBitmaps[origin.avatarId] ?: avatarBitmaps[origin.id]
         val emblemSize = 52f
         val emblemX = startX
         val emblemY = startY
 
-        val originThemeColor = when (originId) {
-            "shinobi" -> Color.parseColor("#00E5FF")
-            "vanguard" -> Color.parseColor("#F59E0B")
-            "executioner" -> Color.parseColor("#EF4444")
-            "sorcerer" -> Color.parseColor("#A855F7")
-            else -> Color.parseColor("#F97316")
+        val originThemeColor = try {
+            Color.parseColor(origin.themeColorHex)
+        } catch (_: Exception) {
+            Color.parseColor("#38BDF8")
         }
 
         hudAvatarRect.set(emblemX, emblemY, emblemX + emblemSize, emblemY + emblemSize)
@@ -3111,82 +3166,77 @@ class GameRenderer(assetManager: AssetManager) {
         canvas: Canvas,
         screenWidth: Float,
         screenHeight: Float,
-        selectedIndex: Int,
-        tabRects: Array<RectF>,
-        awakenBtnRect: RectF,
-        prevBtnRect: RectF,
-        nextBtnRect: RectF
+        vigor: Int,
+        endurance: Int,
+        strength: Int,
+        agility: Int,
+        intelligence: Int,
+        totalPoints: Int,
+        statMinusBtnRects: Array<RectF>,
+        statPlusBtnRects: Array<RectF>,
+        presetBtnRects: Array<RectF>,
+        presetNames: List<String>,
+        selectedPresetIndex: Int,
+        awakenBtnRect: RectF
     ) {
-        val origins = com.example.shadowescape.model.CharacterOrigins.ALL
-        val origin = origins[selectedIndex.coerceIn(0, origins.size - 1)]
+        val origin = com.example.shadowescape.model.CharacterOrigins.deriveClass(vigor, endurance, strength, agility, intelligence)
+        val spentPoints = (vigor - 8) + (endurance - 8) + (strength - 8) + (agility - 8) + (intelligence - 8)
+        val remainingPoints = (totalPoints - spentPoints).coerceAtLeast(0)
+        val originThemeColor = try {
+            Color.parseColor(origin.themeColorHex)
+        } catch (_: Exception) {
+            Color.parseColor("#38BDF8")
+        }
 
         // 1. Dark Atmospheric Overlay
         canvas.drawRect(0f, 0f, screenWidth, screenHeight, originOverlayPaint)
 
         // 2. Header
-        val headerY = screenHeight * 0.08f
-        canvas.drawText("✦  C H O O S E   Y O U R   O R I G I N  ✦", screenWidth / 2f, headerY, originHeaderTitle)
-        canvas.drawText("Select your archetype to awaken in the shadows", screenWidth / 2f, headerY + 22f, originHeaderSub)
+        val headerY = screenHeight * 0.052f
+        canvas.drawText("✦  C H A R A C T E R   C R E A T I O N  ✦", screenWidth / 2f, headerY, originHeaderTitle)
+        canvas.drawText("Allocate your attribute points to forge your class & destiny", screenWidth / 2f, headerY + 18f, originHeaderSub)
 
-        // 3. Category Tabs (5 Origins)
-        val tabY = headerY + 36f
-        val tabH = 38f
-        val maxTabsW = minOf(screenWidth - 48f, 920f)
-        val tabGap = 8f
-        val tabW = (maxTabsW - (origins.size - 1) * tabGap) / origins.size
-        val startTabX = (screenWidth - maxTabsW) / 2f
-
-        for (i in origins.indices) {
-            val o = origins[i]
-            val tx = startTabX + i * (tabW + tabGap)
-            val rect = tabRects[i]
-            rect.set(tx, tabY, tx + tabW, tabY + tabH)
-
-            if (i == selectedIndex) {
-                canvas.drawRoundRect(rect, 8f, 8f, originTabActiveBg)
-                canvas.drawRoundRect(rect, 8f, 8f, originTabBorder)
-            } else {
-                canvas.drawRoundRect(rect, 8f, 8f, originTabInactiveBg)
-            }
-            canvas.drawText("${o.icon} ${o.name.split(" ").last()}", rect.centerX(), rect.centerY() + 5f, originTabText)
-        }
+        // 3. Points Remaining Pill
+        val pillY = headerY + 28f
+        val pillW = 380f
+        val pillH = 26f
+        val pillRect = RectF(screenWidth / 2f - pillW / 2f, pillY, screenWidth / 2f + pillW / 2f, pillY + pillH)
+        val hasPoints = remainingPoints > 0
+        originPointsPillBorder.color = if (hasPoints) Color.parseColor("#F59E0B") else Color.parseColor("#10B981")
+        originPointsPillText.color = if (hasPoints) Color.parseColor("#FEF08A") else Color.parseColor("#A7F3D0")
+        canvas.drawRoundRect(pillRect, 13f, 13f, originPointsPillBg)
+        canvas.drawRoundRect(pillRect, 13f, 13f, originPointsPillBorder)
+        val pillMsg = if (hasPoints) "✦ $remainingPoints ATTRIBUTE POINTS REMAINING ✦" else "✔ ALL POINTS ALLOCATED • CLASS FORGED"
+        canvas.drawText(pillMsg, pillRect.centerX(), pillRect.centerY() + 5f, originPointsPillText)
 
         // 4. Main Two-Column Showcase Area
-        val contentY = tabY + tabH + 16f
-        val bottomNavH = 68f
+        val contentY = pillY + pillH + 12f
+        val bottomNavH = 62f
         val contentH = (screenHeight - contentY - bottomNavH).coerceAtLeast(180f)
-        val marginX = 28f
-        val colGap = 20f
+        val marginX = 22f
+        val colGap = 16f
         val colW = (screenWidth - 2 * marginX - colGap) / 2f
 
-        // --- Left Card: Archetype Lore, Avatar Showcase & Starting Weapon ---
+        // ==========================================
+        // LEFT CARD: Derived Class & Weapon Showcase
+        // ==========================================
         val leftCardRect = RectF(marginX, contentY, marginX + colW, contentY + contentH)
         canvas.drawRoundRect(leftCardRect, 12f, 12f, originCardBg)
+        originCardBorder.color = (originThemeColor and 0x00FFFFFF) or 0x66000000
         canvas.drawRoundRect(leftCardRect, 12f, 12f, originCardBorder)
 
-        val originThemeColor = when (origin.id) {
-            "shinobi" -> Color.parseColor("#00E5FF")     // Cyan
-            "vanguard" -> Color.parseColor("#F59E0B")    // Radiant Gold
-            "executioner" -> Color.parseColor("#EF4444") // Demonic Crimson
-            "sorcerer" -> Color.parseColor("#A855F7")    // Celestial Violet
-            else -> Color.parseColor("#F97316")          // Warm Amber
-        }
-
-        // 1. Avatar Portrait Frame (Showcasing the Dead Cells styled character)
-        val pad = 18f
-        val portraitW = minOf(colW * 0.40f, 360f)
-        val portraitH = minOf(contentH - pad * 2f, 480f)
+        // Avatar Portrait Frame
+        val pad = 14f
+        val portraitW = minOf(colW * 0.36f, 260f)
+        val portraitH = contentH - pad * 2f
         val portraitX = leftCardRect.left + pad
         val portraitY = leftCardRect.top + pad
 
         avatarFrameRect.set(portraitX, portraitY, portraitX + portraitW, portraitY + portraitH)
-
-        // Outer Glow
-        avatarGlowPaint.color = (originThemeColor and 0x00FFFFFF) or 0x44000000
+        avatarGlowPaint.color = (originThemeColor and 0x00FFFFFF) or 0x33000000
         canvas.drawRoundRect(avatarFrameRect, 14f, 14f, avatarGlowPaint)
 
-        // Avatar Clip and Draw
-        val bmp = avatarBitmaps[origin.id]
+        val bmp = avatarBitmaps[origin.avatarId] ?: avatarBitmaps[origin.id]
         if (bmp != null) {
             canvas.save()
             avatarClipPath.reset()
@@ -3195,38 +3245,34 @@ class GameRenderer(assetManager: AssetManager) {
             avatarSrcRect.set(0, 0, bmp.width, bmp.height)
             canvas.drawBitmap(bmp, avatarSrcRect, avatarFrameRect, avatarBitmapPaint)
 
-            // Bottom title overlay on portrait
-            val badgeH = 34f
+            val badgeH = 32f
             canvas.drawRect(avatarFrameRect.left, avatarFrameRect.bottom - badgeH, avatarFrameRect.right, avatarFrameRect.bottom, avatarBadgeBg)
             canvas.restore()
         } else {
             canvas.drawRoundRect(avatarFrameRect, 10f, 10f, originTabInactiveBg)
         }
 
-        // Frame Border
         avatarBorderPaint.color = originThemeColor
         canvas.drawRoundRect(avatarFrameRect, 10f, 10f, avatarBorderPaint)
+        canvas.drawText("${origin.icon} ${origin.title}", avatarFrameRect.centerX(), avatarFrameRect.bottom - 10f, avatarBadgeText)
 
-        // Class Subtitle banner on portrait
-        canvas.drawText("${origin.icon} ${origin.title}", avatarFrameRect.centerX(), avatarFrameRect.bottom - 11f, avatarBadgeText)
-
-        // 2. Info Section (To the right of portrait)
-        val infoX = portraitX + portraitW + 24f
+        // Info Section (To the right of portrait)
+        val infoX = portraitX + portraitW + 18f
         val infoMaxW = leftCardRect.right - pad - infoX
-        var lY = leftCardRect.top + 38f
+        var lY = leftCardRect.top + 32f
 
-        originBadgePaint.textSize = 28f
+        originBadgePaint.textSize = 24f
         originBadgePaint.color = originThemeColor
-        canvas.drawText("${origin.icon}  ${origin.name}", infoX, lY, originBadgePaint)
+        canvas.drawText("${origin.icon}  ${origin.name.uppercase()}", infoX, lY, originBadgePaint)
 
-        lY += 26f
+        lY += 22f
         originDescText.color = Color.parseColor("#94A3B8")
-        originDescText.textSize = 15f
-        canvas.drawText("ARCHETYPE: ${origin.title}   •   LEVEL: ${origin.startingLevel}", infoX, lY, originDescText)
+        originDescText.textSize = 13.5f
+        canvas.drawText("ARCHETYPE: ${origin.title}   •   START LEVEL: ${origin.startingLevel}", infoX, lY, originDescText)
 
-        lY += 26f
+        lY += 22f
         originDescText.color = Color.parseColor("#E2E8F0")
-        originDescText.textSize = 14f
+        originDescText.textSize = 12.5f
         val words = origin.description.split(" ")
         var line = ""
         for (w in words) {
@@ -3234,169 +3280,194 @@ class GameRenderer(assetManager: AssetManager) {
                 line = if (line.isEmpty()) w else "$line $w"
             } else {
                 canvas.drawText(line, infoX, lY, originDescText)
-                lY += 21f
+                lY += 18f
                 line = w
             }
         }
         if (line.isNotEmpty()) {
             canvas.drawText(line, infoX, lY, originDescText)
-            lY += 24f
+            lY += 20f
         }
 
         // Weapon Showcase Sub-card
-        val weaponBoxRect = RectF(infoX, lY, leftCardRect.right - pad, lY + 114f)
+        val weaponBoxRect = RectF(infoX, lY, leftCardRect.right - pad, lY + 98f)
         canvas.drawRoundRect(weaponBoxRect, 8f, 8f, originTabInactiveBg)
         canvas.drawRoundRect(weaponBoxRect, 8f, 8f, originCardBorder)
 
         val wpn = origin.startingWeapon
-        originBadgePaint.textSize = 16f
+        originBadgePaint.textSize = 14.5f
         originBadgePaint.color = Color.parseColor("#38BDF8")
-        canvas.drawText("WEAPON: ${wpn.name}", weaponBoxRect.left + 16f, weaponBoxRect.top + 26f, originBadgePaint)
+        canvas.drawText("WEAPON: ${wpn.name}", weaponBoxRect.left + 14f, weaponBoxRect.top + 22f, originBadgePaint)
 
-        originDescText.textSize = 13.5f
+        originDescText.textSize = 12.5f
         originDescText.color = Color.parseColor("#CBD5E1")
-        canvas.drawText("DMG: ${wpn.baseDamage.toInt()}   •   Stamina: ${wpn.staminaCost.toInt()}   •   Type: ${wpn.type}", weaponBoxRect.left + 16f, weaponBoxRect.top + 50f, originDescText)
+        canvas.drawText("DMG: ${wpn.baseDamage.toInt()}   •   Stamina: ${wpn.staminaCost.toInt()}   •   Type: ${wpn.type}", weaponBoxRect.left + 14f, weaponBoxRect.top + 43f, originDescText)
 
-        originBadgePaint.textSize = 13.5f
+        originBadgePaint.textSize = 12.5f
         originBadgePaint.color = Color.parseColor("#FDE047")
-        canvas.drawText("SCALING:  STR [ ${wpn.strGrade} ]   AGI [ ${wpn.agiGrade} ]   INT [ ${wpn.intGrade} ]", weaponBoxRect.left + 16f, weaponBoxRect.top + 73f, originBadgePaint)
+        canvas.drawText("SCALING:  STR [ ${wpn.strGrade} ]   AGI [ ${wpn.agiGrade} ]   INT [ ${wpn.intGrade} ]", weaponBoxRect.left + 14f, weaponBoxRect.top + 64f, originBadgePaint)
 
-        val comboDesc = when (origin.id) {
-            "shinobi" -> "COMBO: 3-Strike Rapid Katana Flurry (High Crit)"
-            "vanguard" -> "COMBO: 2-Strike Heavy Cleave (Stagger Guard)"
-            "executioner" -> "COMBO: Colossal Overhead Slam (Poise Break)"
-            "sorcerer" -> "COMBO: Piercing Arcane Starlight Orbs"
-            else -> "COMBO: Relentless Abyss Batter (Shatter)"
+        originBadgePaint.textSize = 12f
+        originBadgePaint.color = Color.parseColor("#A7F3D0")
+        canvas.drawText("SKILL: ${wpn.skillName} • ${wpn.skillDescription}", weaponBoxRect.left + 14f, weaponBoxRect.top + 84f, originBadgePaint)
+
+        // Archetype Passives
+        lY = weaponBoxRect.bottom + 18f
+        originBadgePaint.textSize = 13.5f
+        originBadgePaint.color = originThemeColor
+        canvas.drawText("✦ ARCHETYPE PASSIVES & TRAITS", infoX, lY, originBadgePaint)
+
+        lY += 18f
+        for (trait in origin.traits) {
+            originDescText.color = Color.parseColor("#E2E8F0")
+            originDescText.textSize = 12f
+            canvas.drawText(trait, infoX, lY, originDescText)
+            lY += 18f
         }
-        canvas.drawText(comboDesc, weaponBoxRect.left + 16f, weaponBoxRect.top + 94f, originBadgePaint)
 
-        // --- Right Card: Attributes, Attunement & Archetype Passives ---
+        // Tactical Playstyle Box
+        lY += 4f
+        val tacticsBoxRect = RectF(infoX, lY, leftCardRect.right - pad, leftCardRect.bottom - pad)
+        canvas.drawRoundRect(tacticsBoxRect, 8f, 8f, originTabInactiveBg)
+        canvas.drawRoundRect(tacticsBoxRect, 8f, 8f, originCardBorder)
+        originBadgePaint.textSize = 12f
+        originBadgePaint.color = originThemeColor
+        canvas.drawText("✦ TACTICAL PLAYSTYLE", tacticsBoxRect.left + 12f, tacticsBoxRect.top + 18f, originBadgePaint)
+        originDescText.color = Color.parseColor("#CBD5E1")
+        originDescText.textSize = 11.5f
+        canvas.drawText(origin.tacticalPlaystyle, tacticsBoxRect.left + 12f, tacticsBoxRect.top + 38f, originDescText)
+
+        // ==========================================
+        // RIGHT CARD: Interactive Attribute Terminal
+        // ==========================================
         val rightCardRect = RectF(marginX + colW + colGap, contentY, screenWidth - marginX, contentY + contentH)
         canvas.drawRoundRect(rightCardRect, 12f, 12f, originCardBg)
         canvas.drawRoundRect(rightCardRect, 12f, 12f, originCardBorder)
 
-        var rY = rightCardRect.top + 32f
-        val rX = rightCardRect.left + 24f
-        originBadgePaint.textSize = 18f
+        var rY = rightCardRect.top + 28f
+        val rX = rightCardRect.left + 22f
+        val rRight = rightCardRect.right - 22f
+        originBadgePaint.textSize = 16.5f
         originBadgePaint.color = Color.parseColor("#F8FAFC")
-        canvas.drawText("✦ ATTRIBUTES & ATTUNEMENT", rX, rY, originBadgePaint)
+        canvas.drawText("✦ ATTRIBUTE ALLOCATION & ATTUNEMENT", rX, rY, originBadgePaint)
 
-        val statsList = listOf(
-            Triple("VIGOR", origin.vigor, Color.parseColor("#EF4444")),
-            Triple("ENDURANCE", origin.endurance, Color.parseColor("#22C55E")),
-            Triple("STRENGTH", origin.strength, Color.parseColor("#F59E0B")),
-            Triple("AGILITY", origin.agility, Color.parseColor("#06B6D4")),
-            Triple("INTELLIGENCE", origin.intelligence, Color.parseColor("#3B82F6"))
+        val statsData = listOf(
+            Triple("❤️ VIGOR", vigor, Color.parseColor("#EF4444")),
+            Triple("⚡ ENDURANCE", endurance, Color.parseColor("#22C55E")),
+            Triple("⚔️ STRENGTH", strength, Color.parseColor("#F59E0B")),
+            Triple("💨 AGILITY", agility, Color.parseColor("#06B6D4")),
+            Triple("🔮 INTELLIGENCE", intelligence, Color.parseColor("#3B82F6"))
         )
 
-        val statRowGap = 34f
-        val barMaxW = colW - 170f
+        val statRowGap = 48f
+        val btnW = 34f
+        val btnH = 30f
+        val btnMinusX = rX + 160f
+        val btnPlusX = btnMinusX + btnW + 48f
+        val barStartX = btnPlusX + btnW + 18f
+        val barMaxW = (rRight - barStartX).coerceAtLeast(80f)
 
-        for (item in statsList) {
-            val (name, value, color) = item
+        for (i in statsData.indices) {
+            val (name, value, color) = statsData[i]
             rY += statRowGap
+            val rowCenterY = rY - 4f
 
-            originStatLabel.color = Color.parseColor("#94A3B8")
-            canvas.drawText(name, rX, rY, originStatLabel)
+            // 1. Stat Name
+            originStatLabel.color = Color.parseColor("#F1F5F9")
+            originStatLabel.textSize = 14f
+            canvas.drawText(name, rX, rowCenterY + 5f, originStatLabel)
 
+            // 2. Minus Button [-]
+            val minusRect = statMinusBtnRects[i]
+            minusRect.set(btnMinusX, rowCenterY - btnH / 2f, btnMinusX + btnW, rowCenterY + btnH / 2f)
+            val canMinus = value > 8
+            originStatBtnBorder.color = if (canMinus) Color.parseColor("#38BDF8") else Color.parseColor("#475569")
+            originStatBtnText.color = if (canMinus) Color.WHITE else Color.parseColor("#64748B")
+            canvas.drawRoundRect(minusRect, 6f, 6f, originStatBtnBg)
+            canvas.drawRoundRect(minusRect, 6f, 6f, originStatBtnBorder)
+            canvas.drawText("-", minusRect.centerX(), minusRect.centerY() + 7f, originStatBtnText)
+
+            // 3. Stat Value
             originStatValue.color = Color.WHITE
-            canvas.drawText("$value", rX + 110f, rY, originStatValue)
+            originStatValue.textSize = 18f
+            canvas.drawText("$value", btnMinusX + btnW + 24f, rowCenterY + 6f, originStatValue)
 
-            // Stat Bar
-            val barX = rX + 145f
-            val barY = rY - 12f
-            val barH = 10f
-            canvas.drawRoundRect(barX, barY, barX + barMaxW, barY + barH, 4f, 4f, originStatBarBg)
+            // 4. Plus Button [+]
+            val plusRect = statPlusBtnRects[i]
+            plusRect.set(btnPlusX, rowCenterY - btnH / 2f, btnPlusX + btnW, rowCenterY + btnH / 2f)
+            val canPlus = remainingPoints > 0 && value < 20
+            originStatBtnBorder.color = if (canPlus) Color.parseColor("#00E5FF") else Color.parseColor("#475569")
+            originStatBtnText.color = if (canPlus) Color.WHITE else Color.parseColor("#64748B")
+            canvas.drawRoundRect(plusRect, 6f, 6f, originStatBtnBg)
+            canvas.drawRoundRect(plusRect, 6f, 6f, originStatBtnBorder)
+            canvas.drawText("+", plusRect.centerX(), plusRect.centerY() + 7f, originStatBtnText)
 
-            val fillW = (barMaxW * (value / 25f)).coerceIn(10f, barMaxW)
+            // 5. Stat Progress Bar
+            val barY = rowCenterY - 6f
+            val barH = 12f
+            canvas.drawRoundRect(barStartX, barY, barStartX + barMaxW, barY + barH, 4f, 4f, originStatBarBg)
+
+            val fillRatio = ((value - 8) / 12f).coerceIn(0.04f, 1f)
+            val fillW = barMaxW * fillRatio
             crescentAuraPaint.color = color
-            canvas.drawRoundRect(barX, barY, barX + fillW, barY + barH, 4f, 4f, crescentAuraPaint)
+            canvas.drawRoundRect(barStartX, barY, barStartX + fillW, barY + barH, 4f, 4f, crescentAuraPaint)
+
+            // 6. Subtext description
+            val desc = when (i) {
+                0 -> "HP: ${100 + (vigor - 10) * 15}  •  Vitality"
+                1 -> "Stamina: ${80 + (endurance - 10) * 8}  •  Recovery"
+                2 -> "Scaling: Heavy Blades & Poise"
+                3 -> "Scaling: Katana Speed & Dodging"
+                else -> "Mana: ${50 + (intelligence - 10) * 10}  •  Sorcery"
+            }
+            originDescText.textSize = 11.5f
+            originDescText.color = Color.parseColor("#94A3B8")
+            canvas.drawText(desc, barStartX, rowCenterY + 20f, originDescText)
         }
 
-        // Archetype Signature Traits & Passives
-        rY += 38f
-        originBadgePaint.textSize = 16f
-        originBadgePaint.color = originThemeColor
-        canvas.drawText("✦ ARCHETYPE PASSIVES & TRAITS", rX, rY, originBadgePaint)
+        // Quick Archetype Presets Section
+        rY += 52f
+        originBadgePaint.textSize = 13.5f
+        originBadgePaint.color = Color.parseColor("#F59E0B")
+        canvas.drawText("✦ QUICK ARCHETYPE PRESETS (TAP TO APPLY) ✦", rX, rY, originBadgePaint)
 
-        rY += 24f
-        val traits = when (origin.id) {
-            "shinobi" -> listOf(
-                "💨 Ghost Walk: Agile sprint (+15%), Roll stamina cost -20%",
-                "⚡ Flurry Strikes: Katana attacks combo with accelerating speed",
-                "🎯 Shadow Prowess: High Agility weapon damage scaling"
-            )
-            "vanguard" -> listOf(
-                "🛡️ Iron Bastion: +50 Poise, 15% physical damage reduction",
-                "💥 Crushing Cleave: Heavy broadsword slashes stagger foes",
-                "⚔️ Unyielding: Low stamina cost on defensive recoveries"
-            )
-            "executioner" -> listOf(
-                "🩸 Blood Siphon: Stagger visceral attacks heal 12% HP",
-                "🪓 Guard Shatter: Massive posture & poise damage per hit",
-                "💀 Dread Aura: Increased critical strike chance on wounded foes"
-            )
-            "sorcerer" -> listOf(
-                "🔮 Astral Conduit: Fires homing celestial starlight orbs",
-                "💧 Font of Aether: Automatic continuous FP/Mana regeneration",
-                "✨ Cosmic Resonance: Intelligence boosts all projectile spells"
-            )
-            else -> listOf(
-                "🍂 Scavenger's Grit: +35% Flask drop rate from chests & enemies",
-                "🗡️ Desperate Edge: +30% attack damage when health is below 40%",
-                "🦴 Raw Adaptability: Equal stat distribution for any build"
-            )
-        }
-
-        for (trait in traits) {
-            originDescText.color = Color.parseColor("#E2E8F0")
-            originDescText.textSize = 13.5f
-            canvas.drawText(trait, rX, rY, originDescText)
-            rY += 24f
-        }
-
-        // Tactical Combat Playstyle Box
         rY += 14f
-        val tacticsBoxRect = RectF(rX - 8f, rY, rightCardRect.right - 24f, rY + 70f)
-        canvas.drawRoundRect(tacticsBoxRect, 8f, 8f, originTabInactiveBg)
-        canvas.drawRoundRect(tacticsBoxRect, 8f, 8f, originCardBorder)
+        val presetGap = 8f
+        val presetW = (rRight - rX - (presetNames.size - 1) * presetGap) / presetNames.size
+        val presetH = 34f
 
-        originBadgePaint.textSize = 14f
-        originBadgePaint.color = originThemeColor
-        canvas.drawText("✦ TACTICAL PLAYSTYLE", tacticsBoxRect.left + 14f, tacticsBoxRect.top + 22f, originBadgePaint)
+        for (p in presetNames.indices) {
+            val px = rX + p * (presetW + presetGap)
+            val pRect = presetBtnRects[p]
+            pRect.set(px, rY, px + presetW, rY + presetH)
 
-        val tacticText = when (origin.id) {
-            "shinobi" -> "Fluidly cancel attacks into acrobatic rolls. Chain rapid bleeds behind enemies."
-            "vanguard" -> "Absorb brute force with poise. Break enemy guard using punishing heavy cleaves."
-            "executioner" -> "Unstoppable stagger juggernaut. Execute visceral finishers to siphon vital HP."
-            "sorcerer" -> "Arcane zoning artillery. Rain seeking starlight bolts while mana surges endlessly."
-            else -> "Resilient abyssal brawler. Adapt to any weapon and strike harder as health depletes."
+            val isSelected = selectedPresetIndex == p
+            if (isSelected) {
+                canvas.drawRoundRect(pRect, 6f, 6f, originPresetActiveBg)
+                originPresetBorder.color = Color.parseColor("#38BDF8")
+                originPresetText.color = Color.WHITE
+            } else {
+                canvas.drawRoundRect(pRect, 6f, 6f, originPresetInactiveBg)
+                originPresetBorder.color = Color.parseColor("#475569")
+                originPresetText.color = Color.parseColor("#CBD5E1")
+            }
+            canvas.drawRoundRect(pRect, 6f, 6f, originPresetBorder)
+            canvas.drawText(presetNames[p], pRect.centerX(), pRect.centerY() + 4.5f, originPresetText)
         }
-        originDescText.color = Color.parseColor("#CBD5E1")
-        originDescText.textSize = 13f
-        canvas.drawText(tacticText, tacticsBoxRect.left + 14f, tacticsBoxRect.top + 48f, originDescText)
 
         // 5. Bottom Navigation & Awaken Button
-        val bY = screenHeight - 82f
-        val awakenW = 380f
-        val awakenH = 50f
+        val bY = screenHeight - 56f
+        val awakenW = 420f
+        val awakenH = 46f
         val cx = screenWidth / 2f
 
-        awakenBtnRect.set(cx - awakenW / 2f, bY, cx + awakenW / 2f, bY + awakenH)
+        awakenBtnRect.set(cx - awakenW / 2f, bY - awakenH / 2f, cx + awakenW / 2f, bY + awakenH / 2f)
+        val pulseAura = sin(globalTime * 4f) * 3f
+        canvas.drawRoundRect(awakenBtnRect.left - pulseAura, awakenBtnRect.top - pulseAura, awakenBtnRect.right + pulseAura, awakenBtnRect.bottom + pulseAura, 10f, 10f, avatarGlowPaint)
         canvas.drawRoundRect(awakenBtnRect, 10f, 10f, originAwakenBtnBg)
+        originAwakenBtnBorder.color = originThemeColor
         canvas.drawRoundRect(awakenBtnRect, 10f, 10f, originAwakenBtnBorder)
-        canvas.drawText("✦  AWAKEN IN THE SHADOWS  ✦", awakenBtnRect.centerX(), awakenBtnRect.centerY() + 8f, originAwakenBtnText)
-
-        // Prev & Next Buttons
-        prevBtnRect.set(awakenBtnRect.left - 86f, bY, awakenBtnRect.left - 16f, bY + awakenH)
-        canvas.drawRoundRect(prevBtnRect, 8f, 8f, originTabInactiveBg)
-        canvas.drawRoundRect(prevBtnRect, 8f, 8f, originCardBorder)
-        canvas.drawText("◀", prevBtnRect.centerX(), prevBtnRect.centerY() + 8f, originAwakenBtnText)
-
-        nextBtnRect.set(awakenBtnRect.right + 16f, bY, awakenBtnRect.right + 86f, bY + awakenH)
-        canvas.drawRoundRect(nextBtnRect, 8f, 8f, originTabInactiveBg)
-        canvas.drawRoundRect(nextBtnRect, 8f, 8f, originCardBorder)
-        canvas.drawText("▶", nextBtnRect.centerX(), nextBtnRect.centerY() + 8f, originAwakenBtnText)
+        canvas.drawText("✦  AWAKEN IN THE SHADOWS  ✦", awakenBtnRect.centerX(), awakenBtnRect.centerY() + 6.5f, originAwakenBtnText)
     }
 
     private fun renderChests(canvas: Canvas, chests: List<TreasureChest>, player: Player) {

@@ -68,13 +68,22 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     // Dead Cells Hitstop (Impact Freeze)
     var hitstopTimer: Float = 0f
 
-    // Character Origin Selection State
+    // Character Origin & Attribute Allocation State
     var isSelectingOrigin: Boolean = true
-    var selectedOriginIndex: Int = 0
-    private val originTabRects = Array(5) { RectF() }
+    val baseAttributeStat: Int = 8
+    val totalAttributePoints: Int = 20
+    var allocatedVigor: Int = 13
+    var allocatedEndurance: Int = 12
+    var allocatedStrength: Int = 14
+    var allocatedAgility: Int = 8
+    var allocatedIntelligence: Int = 13
+    var selectedPresetIndex: Int = 3 // Paladin default preset
+
+    val statMinusBtnRects = Array(5) { RectF() }
+    val statPlusBtnRects = Array(5) { RectF() }
+    val presetBtnRects = Array(6) { RectF() }
+    val presetNames = listOf("Warrior", "Sorcerer", "Spellblade", "Paladin", "Shinobi", "↺ Reset")
     private val originAwakenBtnRect = RectF()
-    private val originPrevBtnRect = RectF()
-    private val originNextBtnRect = RectF()
 
     // Pause Menu State & Touch Bounds
     var isPaused: Boolean = false
@@ -591,11 +600,18 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 canvas,
                 width.toFloat(),
                 height.toFloat(),
-                selectedOriginIndex,
-                originTabRects,
-                originAwakenBtnRect,
-                originPrevBtnRect,
-                originNextBtnRect
+                allocatedVigor,
+                allocatedEndurance,
+                allocatedStrength,
+                allocatedAgility,
+                allocatedIntelligence,
+                totalAttributePoints,
+                statMinusBtnRects,
+                statPlusBtnRects,
+                presetBtnRects,
+                presetNames,
+                selectedPresetIndex,
+                originAwakenBtnRect
             )
         } else {
             drawTouchControls(canvas)
@@ -896,43 +912,117 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 val px = event.getX(index)
                 val py = event.getY(index)
 
-                val origins = CharacterOrigins.ALL
+                val spent = (allocatedVigor - baseAttributeStat) +
+                    (allocatedEndurance - baseAttributeStat) +
+                    (allocatedStrength - baseAttributeStat) +
+                    (allocatedAgility - baseAttributeStat) +
+                    (allocatedIntelligence - baseAttributeStat)
+                val remainingPoints = (totalAttributePoints - spent).coerceAtLeast(0)
 
-                // 1. Check Class Tabs
-                for (i in originTabRects.indices) {
-                    if (originTabRects[i].contains(px, py)) {
-                        if (selectedOriginIndex != i) {
-                            selectedOriginIndex = i
-                            soundManager.playSwitch()
-                            hapticManager.vibrateAttack()
+                // 1. Check Minus Buttons [-]
+                for (i in statMinusBtnRects.indices) {
+                    if (statMinusBtnRects[i].contains(px, py)) {
+                        when (i) {
+                            0 -> if (allocatedVigor > baseAttributeStat) allocatedVigor--
+                            1 -> if (allocatedEndurance > baseAttributeStat) allocatedEndurance--
+                            2 -> if (allocatedStrength > baseAttributeStat) allocatedStrength--
+                            3 -> if (allocatedAgility > baseAttributeStat) allocatedAgility--
+                            4 -> if (allocatedIntelligence > baseAttributeStat) allocatedIntelligence--
                         }
+                        selectedPresetIndex = -1
+                        soundManager.playSwitch()
+                        hapticManager.vibrateAttack()
                         return true
                     }
                 }
 
-                // 2. Check Previous Arrow
-                if (originPrevBtnRect.contains(px, py)) {
-                    selectedOriginIndex = (selectedOriginIndex + origins.size - 1) % origins.size
-                    soundManager.playSwitch()
-                    hapticManager.vibrateAttack()
-                    return true
+                // 2. Check Plus Buttons [+]
+                if (remainingPoints > 0) {
+                    for (i in statPlusBtnRects.indices) {
+                        if (statPlusBtnRects[i].contains(px, py)) {
+                            when (i) {
+                                0 -> if (allocatedVigor < 20) allocatedVigor++
+                                1 -> if (allocatedEndurance < 20) allocatedEndurance++
+                                2 -> if (allocatedStrength < 20) allocatedStrength++
+                                3 -> if (allocatedAgility < 20) allocatedAgility++
+                                4 -> if (allocatedIntelligence < 20) allocatedIntelligence++
+                            }
+                            selectedPresetIndex = -1
+                            soundManager.playSwitch()
+                            hapticManager.vibrateAttack()
+                            return true
+                        }
+                    }
                 }
 
-                // 3. Check Next Arrow
-                if (originNextBtnRect.contains(px, py)) {
-                    selectedOriginIndex = (selectedOriginIndex + 1) % origins.size
-                    soundManager.playSwitch()
-                    hapticManager.vibrateAttack()
-                    return true
+                // 3. Check Quick Archetype Presets
+                for (p in presetBtnRects.indices) {
+                    if (presetBtnRects[p].contains(px, py)) {
+                        when (p) {
+                            0 -> { // Warrior (High STR)
+                                allocatedVigor = 12
+                                allocatedEndurance = 11
+                                allocatedStrength = 18
+                                allocatedAgility = 9
+                                allocatedIntelligence = 8
+                            }
+                            1 -> { // Sorcerer (High INT)
+                                allocatedVigor = 10
+                                allocatedEndurance = 10
+                                allocatedStrength = 8
+                                allocatedAgility = 10
+                                allocatedIntelligence = 20
+                            }
+                            2 -> { // Spellblade / Magic Swordsman (Balanced STR + INT)
+                                allocatedVigor = 11
+                                allocatedEndurance = 11
+                                allocatedStrength = 14
+                                allocatedAgility = 10
+                                allocatedIntelligence = 14
+                            }
+                            3 -> { // Paladin (Holy STR + INT + DEF)
+                                allocatedVigor = 13
+                                allocatedEndurance = 12
+                                allocatedStrength = 14
+                                allocatedAgility = 8
+                                allocatedIntelligence = 13
+                            }
+                            4 -> { // Shinobi (High AGI)
+                                allocatedVigor = 11
+                                allocatedEndurance = 13
+                                allocatedStrength = 10
+                                allocatedAgility = 18
+                                allocatedIntelligence = 8
+                            }
+                            5 -> { // Reset to base 8
+                                allocatedVigor = baseAttributeStat
+                                allocatedEndurance = baseAttributeStat
+                                allocatedStrength = baseAttributeStat
+                                allocatedAgility = baseAttributeStat
+                                allocatedIntelligence = baseAttributeStat
+                            }
+                        }
+                        selectedPresetIndex = p
+                        soundManager.playSwitch()
+                        hapticManager.vibrateHeavyAttack()
+                        return true
+                    }
                 }
 
                 // 4. Check Awaken Button
                 if (originAwakenBtnRect.contains(px, py)) {
-                    player.applyOrigin(origins[selectedOriginIndex])
+                    val derivedOrigin = CharacterOrigins.deriveClass(
+                        allocatedVigor,
+                        allocatedEndurance,
+                        allocatedStrength,
+                        allocatedAgility,
+                        allocatedIntelligence
+                    )
+                    player.applyOrigin(derivedOrigin)
                     isSelectingOrigin = false
                     soundManager.playCheckpoint()
                     hapticManager.vibrateHeavyAttack()
-                    renderer.triggerScreenShake(0.20f, 6f)
+                    renderer.triggerScreenShake(0.22f, 7f)
                     return true
                 }
             }
