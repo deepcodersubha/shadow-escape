@@ -133,7 +133,7 @@ object CharacterOrigins {
             "🕯️ Grace Blessing: Flask recovery potency increased by +25%"
         ),
         tacticalPlaystyle = "Stand firm against ferocious assaults. Retaliate with heavy magic-infused cleaves and consecrated poise.",
-        avatarId = "vanguard",
+        avatarId = "paladin",
         themeColorHex = "#F59E0B"
     )
 
@@ -156,7 +156,7 @@ object CharacterOrigins {
             "💧 Font of Aether: Continuous passive FP regeneration"
         ),
         tacticalPlaystyle = "Harass from medium distance with spells, then dash in for devastating magic-empowered sword combos.",
-        avatarId = "sorcerer",
+        avatarId = "magic_swordsman",
         themeColorHex = "#38BDF8"
     )
 
@@ -179,12 +179,12 @@ object CharacterOrigins {
             "✨ Shadow Sorcery: Dagger attacks crit for +40% bonus damage"
         ),
         tacticalPlaystyle = "Slip behind enemies with low-cost rolls, inflict frostbite, and harvest essence with swift critical daggers.",
-        avatarId = "shinobi",
+        avatarId = "nightblade",
         themeColorHex = "#818CF8"
     )
 
     val THE_FORSAKEN = CharacterOrigin(
-        id = "forsaken",
+        id = "ronin",
         name = "Ronin",
         title = "Masterless Wanderer",
         icon = "🎋",
@@ -202,7 +202,7 @@ object CharacterOrigins {
             "⚔️ Dual Scaling: Master of both heavy greatswords and nimble katanas"
         ),
         tacticalPlaystyle = "Switch stances dynamically to adapt to any foe. Out-space opponents with superior reach and timing.",
-        avatarId = "forsaken",
+        avatarId = "ronin",
         themeColorHex = "#10B981"
     )
 
@@ -225,7 +225,7 @@ object CharacterOrigins {
             "🦴 Raw Adaptability: Equal stat distribution for any build path"
         ),
         tacticalPlaystyle = "Resilient abyssal brawler. Adapt to any weapon and strike harder as health depletes.",
-        avatarId = "forsaken",
+        avatarId = "wanderer",
         themeColorHex = "#CBD5E1"
     )
 
@@ -279,24 +279,22 @@ object CharacterOrigins {
                     "🕯️ Grace Blessing: Flask recovery potency increased by +25%"
                 ),
                 tacticalPlaystyle = "Stand firm against ferocious assaults. Retaliate with heavy magic-infused cleaves and consecrated poise.",
-                avatarId = "vanguard",
+                avatarId = "paladin",
                 themeColorHex = "#F59E0B"
             )
         }
 
-        // 2. MAGIC SWORDSMAN: Balanced martial prowess (Strength or Agility) and Arcane Sorcery
-        val maxMartial = maxOf(strength, agility)
-        val isMagicSwordsman = intelligence >= 11 && maxMartial >= 11 && kotlin.math.abs(maxMartial - intelligence) <= 3
+        // 2. MAGIC SWORDSMAN: Balanced martial prowess (Strength) and Arcane Sorcery
+        val isMagicSwordsman = strength >= 11 && intelligence >= 11 && kotlin.math.abs(strength - intelligence) <= 3
 
         if (isMagicSwordsman) {
-            val usesKatana = agility >= strength
             return CharacterOrigin(
                 id = "magic_swordsman",
                 name = "Magic Swordsman",
                 title = "Weaver of Blade & Starlight",
                 icon = "⚔️🔮",
                 description = "An agile mystic duelist attuned to both physical combat and astral sorcery. Fluidly interweaves melee slashes with piercing arcane spell strikes.",
-                startingWeapon = if (usesKatana) Weapons.SHADOW_KATANA else Weapons.PALE_ECLIPSE_GREATSWORD,
+                startingWeapon = Weapons.PALE_ECLIPSE_GREATSWORD,
                 vigor = vigor,
                 endurance = endurance,
                 strength = strength,
@@ -309,13 +307,13 @@ object CharacterOrigins {
                     "💧 Font of Aether: Continuous passive FP regeneration"
                 ),
                 tacticalPlaystyle = "Harass from medium distance with spells, then dash in for devastating magic-empowered sword combos.",
-                avatarId = "sorcerer",
+                avatarId = "magic_swordsman",
                 themeColorHex = "#38BDF8"
             )
         }
 
         // 3. NIGHTBLADE: Agility + Intelligence (Shadow magic, critical stealth, frost)
-        val isNightblade = agility >= 12 && intelligence >= 11 && kotlin.math.abs(agility - intelligence) <= 3
+        val isNightblade = agility >= 11 && intelligence >= 11 && kotlin.math.abs(agility - intelligence) <= 3
 
         if (isNightblade) {
             return CharacterOrigin(
@@ -337,7 +335,7 @@ object CharacterOrigins {
                     "✨ Shadow Sorcery: Dagger attacks crit for +40% bonus damage"
                 ),
                 tacticalPlaystyle = "Slip behind enemies with low-cost rolls, inflict frostbite, and harvest essence with swift critical daggers.",
-                avatarId = "shinobi",
+                avatarId = "nightblade",
                 themeColorHex = "#818CF8"
             )
         }
@@ -365,7 +363,7 @@ object CharacterOrigins {
                     "⚔️ Dual Scaling: Master of both heavy greatswords and nimble katanas"
                 ),
                 tacticalPlaystyle = "Switch stances dynamically to adapt to any foe. Out-space opponents with superior reach and timing.",
-                avatarId = "forsaken",
+                avatarId = "ronin",
                 themeColorHex = "#10B981"
             )
         }
@@ -502,7 +500,7 @@ object CharacterOrigins {
                 "🦴 Raw Adaptability: Equal stat distribution for any build path"
             ),
             tacticalPlaystyle = "Resilient abyssal brawler. Adapt to any weapon and strike harder as health depletes.",
-            avatarId = "forsaken",
+            avatarId = "wanderer",
             themeColorHex = "#CBD5E1"
         )
     }

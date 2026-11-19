@@ -77,12 +77,9 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     var allocatedStrength: Int = 14
     var allocatedAgility: Int = 8
     var allocatedIntelligence: Int = 13
-    var selectedPresetIndex: Int = 3 // Paladin default preset
-
     val statMinusBtnRects = Array(5) { RectF() }
     val statPlusBtnRects = Array(5) { RectF() }
-    val presetBtnRects = Array(6) { RectF() }
-    val presetNames = listOf("Warrior", "Sorcerer", "Spellblade", "Paladin", "Shinobi", "↺ Reset")
+    val statResetBtnRect = RectF()
     private val originAwakenBtnRect = RectF()
 
     // Pause Menu State & Touch Bounds
@@ -608,9 +605,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 totalAttributePoints,
                 statMinusBtnRects,
                 statPlusBtnRects,
-                presetBtnRects,
-                presetNames,
-                selectedPresetIndex,
+                statResetBtnRect,
                 originAwakenBtnRect
             )
         } else {
@@ -929,7 +924,6 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                             3 -> if (allocatedAgility > baseAttributeStat) allocatedAgility--
                             4 -> if (allocatedIntelligence > baseAttributeStat) allocatedIntelligence--
                         }
-                        selectedPresetIndex = -1
                         soundManager.playSwitch()
                         hapticManager.vibrateAttack()
                         return true
@@ -947,7 +941,6 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                                 3 -> if (allocatedAgility < 20) allocatedAgility++
                                 4 -> if (allocatedIntelligence < 20) allocatedIntelligence++
                             }
-                            selectedPresetIndex = -1
                             soundManager.playSwitch()
                             hapticManager.vibrateAttack()
                             return true
@@ -955,58 +948,16 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                     }
                 }
 
-                // 3. Check Quick Archetype Presets
-                for (p in presetBtnRects.indices) {
-                    if (presetBtnRects[p].contains(px, py)) {
-                        when (p) {
-                            0 -> { // Warrior (High STR)
-                                allocatedVigor = 12
-                                allocatedEndurance = 11
-                                allocatedStrength = 18
-                                allocatedAgility = 9
-                                allocatedIntelligence = 8
-                            }
-                            1 -> { // Sorcerer (High INT)
-                                allocatedVigor = 10
-                                allocatedEndurance = 10
-                                allocatedStrength = 8
-                                allocatedAgility = 10
-                                allocatedIntelligence = 20
-                            }
-                            2 -> { // Spellblade / Magic Swordsman (Balanced STR + INT)
-                                allocatedVigor = 11
-                                allocatedEndurance = 11
-                                allocatedStrength = 14
-                                allocatedAgility = 10
-                                allocatedIntelligence = 14
-                            }
-                            3 -> { // Paladin (Holy STR + INT + DEF)
-                                allocatedVigor = 13
-                                allocatedEndurance = 12
-                                allocatedStrength = 14
-                                allocatedAgility = 8
-                                allocatedIntelligence = 13
-                            }
-                            4 -> { // Shinobi (High AGI)
-                                allocatedVigor = 11
-                                allocatedEndurance = 13
-                                allocatedStrength = 10
-                                allocatedAgility = 18
-                                allocatedIntelligence = 8
-                            }
-                            5 -> { // Reset to base 8
-                                allocatedVigor = baseAttributeStat
-                                allocatedEndurance = baseAttributeStat
-                                allocatedStrength = baseAttributeStat
-                                allocatedAgility = baseAttributeStat
-                                allocatedIntelligence = baseAttributeStat
-                            }
-                        }
-                        selectedPresetIndex = p
-                        soundManager.playSwitch()
-                        hapticManager.vibrateHeavyAttack()
-                        return true
-                    }
+                // 3. Check Reset All Points Button
+                if (statResetBtnRect.contains(px, py)) {
+                    allocatedVigor = baseAttributeStat
+                    allocatedEndurance = baseAttributeStat
+                    allocatedStrength = baseAttributeStat
+                    allocatedAgility = baseAttributeStat
+                    allocatedIntelligence = baseAttributeStat
+                    soundManager.playSwitch()
+                    hapticManager.vibrateHeavyAttack()
+                    return true
                 }
 
                 // 4. Check Awaken Button

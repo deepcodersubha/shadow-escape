@@ -941,7 +941,19 @@ class GameRenderer(assetManager: AssetManager) {
     }
 
     init {
-        val originIds = listOf("shinobi", "vanguard", "executioner", "sorcerer", "forsaken")
+        val originIds = listOf(
+            "shinobi",
+            "vanguard",
+            "executioner",
+            "sorcerer",
+            "forsaken",
+            "paladin",
+            "magic_swordsman",
+            "nightblade",
+            "ronin",
+            "wanderer",
+            "warrior"
+        )
         for (id in originIds) {
             try {
                 assetManager.open("characters/${id}_avatar.jpg").use { isStream ->
@@ -3174,9 +3186,7 @@ class GameRenderer(assetManager: AssetManager) {
         totalPoints: Int,
         statMinusBtnRects: Array<RectF>,
         statPlusBtnRects: Array<RectF>,
-        presetBtnRects: Array<RectF>,
-        presetNames: List<String>,
-        selectedPresetIndex: Int,
+        resetBtnRect: RectF,
         awakenBtnRect: RectF
     ) {
         val origin = com.example.shadowescape.model.CharacterOrigins.deriveClass(vigor, endurance, strength, agility, intelligence)
@@ -3425,35 +3435,35 @@ class GameRenderer(assetManager: AssetManager) {
             canvas.drawText(desc, barStartX, rowCenterY + 20f, originDescText)
         }
 
-        // Quick Archetype Presets Section
-        rY += 52f
-        originBadgePaint.textSize = 13.5f
-        originBadgePaint.color = Color.parseColor("#F59E0B")
-        canvas.drawText("✦ QUICK ARCHETYPE PRESETS (TAP TO APPLY) ✦", rX, rY, originBadgePaint)
+        // Guidance Box for Dynamic Classes
+        val guideTop = rY + 44f
+        val guideBottom = rightCardRect.bottom - 54f
+        if (guideBottom > guideTop + 36f) {
+            val guideBoxRect = RectF(rX, guideTop, rRight, guideBottom)
+            canvas.drawRoundRect(guideBoxRect, 8f, 8f, originTabInactiveBg)
+            canvas.drawRoundRect(guideBoxRect, 8f, 8f, originCardBorder)
 
-        rY += 14f
-        val presetGap = 8f
-        val presetW = (rRight - rX - (presetNames.size - 1) * presetGap) / presetNames.size
-        val presetH = 34f
+            originBadgePaint.textSize = 12.5f
+            originBadgePaint.color = Color.parseColor("#38BDF8")
+            canvas.drawText("✦ DYNAMIC CLASS ATTUNEMENTS", guideBoxRect.left + 14f, guideBoxRect.top + 20f, originBadgePaint)
 
-        for (p in presetNames.indices) {
-            val px = rX + p * (presetW + presetGap)
-            val pRect = presetBtnRects[p]
-            pRect.set(px, rY, px + presetW, rY + presetH)
-
-            val isSelected = selectedPresetIndex == p
-            if (isSelected) {
-                canvas.drawRoundRect(pRect, 6f, 6f, originPresetActiveBg)
-                originPresetBorder.color = Color.parseColor("#38BDF8")
-                originPresetText.color = Color.WHITE
-            } else {
-                canvas.drawRoundRect(pRect, 6f, 6f, originPresetInactiveBg)
-                originPresetBorder.color = Color.parseColor("#475569")
-                originPresetText.color = Color.parseColor("#CBD5E1")
-            }
-            canvas.drawRoundRect(pRect, 6f, 6f, originPresetBorder)
-            canvas.drawText(presetNames[p], pRect.centerX(), pRect.centerY() + 4.5f, originPresetText)
+            originDescText.textSize = 11.5f
+            originDescText.color = Color.parseColor("#CBD5E1")
+            canvas.drawText("• Pure Strength ➔ Warrior   • Pure Int ➔ Astral Sorcerer   • Pure Agi ➔ Shadow Shinobi", guideBoxRect.left + 14f, guideBoxRect.top + 38f, originDescText)
+            canvas.drawText("• STR + INT ➔ Paladin / Magic Swordsman   • AGI + INT ➔ Nightblade   • STR + AGI ➔ Ronin", guideBoxRect.left + 14f, guideBoxRect.top + 56f, originDescText)
+            canvas.drawText("• High VIG + END ➔ Iron Vanguard   • Balanced Attributes ➔ Wanderer", guideBoxRect.left + 14f, guideBoxRect.top + 74f, originDescText)
         }
+
+        // Reset Points Button
+        val resetW = 190f
+        val resetH = 32f
+        resetBtnRect.set(rRight - resetW, rightCardRect.bottom - resetH - 12f, rRight, rightCardRect.bottom - 12f)
+        canvas.drawRoundRect(resetBtnRect, 6f, 6f, originStatBtnBg)
+        originStatBtnBorder.color = Color.parseColor("#64748B")
+        canvas.drawRoundRect(resetBtnRect, 6f, 6f, originStatBtnBorder)
+        originPresetText.color = Color.parseColor("#E2E8F0")
+        originPresetText.textSize = 12f
+        canvas.drawText("↺  RESET ALL POINTS", resetBtnRect.centerX(), resetBtnRect.centerY() + 4.5f, originPresetText)
 
         // 5. Bottom Navigation & Awaken Button
         val bY = screenHeight - 56f
