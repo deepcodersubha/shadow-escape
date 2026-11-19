@@ -37,6 +37,7 @@ object SaveManager {
             putInt("essence", player.stats.essence)
             putString("equipped_weapon", player.equippedWeapon.id)
             putString("inventory_weapons", invIds)
+            putString("equipped_armor", player.equippedArmor.id)
             putBoolean("blood_pact", player.stats.bloodPactActive)
             putBoolean("ascetic_pact", player.stats.asceticPactActive)
             putFloat("spawn_x", spawnX)
@@ -86,6 +87,13 @@ object SaveManager {
         Weapons.ALL.find { it.id == eqId }?.let { w ->
             if (!player.inventory.contains(w)) player.inventory.add(w)
             player.equippedWeapon = w
+        }
+
+        val eqArmorId = prefs.getString("equipped_armor", "") ?: ""
+        if (eqArmorId.isNotBlank()) {
+            com.example.shadowescape.model.Armors.findById(eqArmorId)?.let { a ->
+                player.equipArmor(a)
+            }
         }
 
         val cpStr = prefs.getString("activated_checkpoints", "") ?: ""

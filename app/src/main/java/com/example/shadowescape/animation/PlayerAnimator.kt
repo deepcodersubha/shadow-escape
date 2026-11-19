@@ -9,6 +9,7 @@ import android.graphics.Path
 import android.graphics.RectF
 import com.example.shadowescape.model.Player
 import com.example.shadowescape.model.WeaponType
+import com.example.shadowescape.renderer.ArmorRenderer
 import com.example.shadowescape.renderer.WeaponRenderer
 import java.io.IOException
 import kotlin.math.PI
@@ -23,6 +24,7 @@ enum class PlayerAnimState {
 
 class PlayerAnimator(assetManager: AssetManager) {
     val weaponRenderer: WeaponRenderer = WeaponRenderer(assetManager)
+    val armorRenderer: ArmorRenderer = ArmorRenderer(assetManager)
     private val animations = mutableMapOf<PlayerAnimState, SpriteAnimation>()
     private val shinobiAnimations = mutableMapOf<PlayerAnimState, SpriteAnimation>()
     private var shinobiAttackAnim: SpriteAnimation? = null
@@ -463,6 +465,9 @@ class PlayerAnimator(assetManager: AssetManager) {
                 }
             }
 
+            if (player.isAlive && !player.isRolling) {
+                armorRenderer.drawOnPlayer(canvas, player, pb.centerX + (if (flipH) -2f else 2f), pb.bottom - 46f, flipH, 0.95f)
+            }
             canvas.restore()
             return true
         }
@@ -516,6 +521,9 @@ class PlayerAnimator(assetManager: AssetManager) {
                 }
             }
 
+            if (player.isAlive && !player.isRolling) {
+                armorRenderer.drawOnPlayer(canvas, player, pb.centerX + (if (flipH) -2f else 2f), pb.bottom - 46f, flipH, 0.95f)
+            }
             canvas.restore()
             return true
         }
@@ -581,6 +589,9 @@ class PlayerAnimator(assetManager: AssetManager) {
                 }
             }
 
+            if (player.isAlive && !player.isRolling) {
+                armorRenderer.drawOnPlayer(canvas, player, pb.centerX + (if (flipH) -2f else 2f), pb.bottom - 46f, flipH, 0.95f)
+            }
             canvas.restore()
             return true
         }
@@ -630,6 +641,9 @@ class PlayerAnimator(assetManager: AssetManager) {
                 }
             }
 
+            if (player.isAlive && !player.isRolling) {
+                armorRenderer.drawOnPlayer(canvas, player, pb.centerX + (if (flipH) -2f else 2f), pb.bottom - 46f, flipH, 0.95f)
+            }
             canvas.restore()
             return true
         }
@@ -674,6 +688,9 @@ class PlayerAnimator(assetManager: AssetManager) {
                 }
             }
 
+            if (player.isAlive && !player.isRolling) {
+                armorRenderer.drawOnPlayer(canvas, player, pb.centerX + (if (flipH) -2f else 2f), pb.bottom - 46f, flipH, 0.95f)
+            }
             canvas.restore()
             return true
         }
@@ -907,6 +924,10 @@ class PlayerAnimator(assetManager: AssetManager) {
             "executioner" -> renderDeadCellsExecutioner(canvas, player, cx, pelvisX, pelvisY, chestX, chestY, chestW, chestH, headX, headY, feetY, dir, runCycle, isRunning, isAirborne, animTime)
             "sorcerer" -> renderDeadCellsSorcerer(canvas, player, cx, pelvisX, pelvisY, chestX, chestY, chestW, chestH, headX, headY, feetY, dir, runCycle, isRunning, isAirborne, animTime)
             else -> renderDeadCellsForsaken(canvas, player, cx, pelvisX, pelvisY, chestX, chestY, chestW, chestH, headX, headY, feetY, dir, runCycle, isRunning, isAirborne, animTime)
+        }
+
+        if (player.isAlive) {
+            armorRenderer.drawOnPlayer(canvas, player, chestX, chestY + 2f, !player.facingRight, 1.05f)
         }
     }
 

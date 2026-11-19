@@ -13,6 +13,7 @@ import com.example.shadowescape.audio.HapticManager
 import com.example.shadowescape.audio.SoundManager
 import com.example.shadowescape.engine.Camera
 import com.example.shadowescape.engine.GameLoop
+import com.example.shadowescape.model.Armors
 import com.example.shadowescape.model.CharacterOrigins
 import com.example.shadowescape.model.EnemyType
 import com.example.shadowescape.model.ItemRarity
@@ -86,11 +87,19 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     var isPaused: Boolean = false
     private val pauseBtnRect = RectF()
     private val pauseContinueBtnRect = RectF()
+    private val pauseEquipmentBtnRect = RectF()
     private val pauseRestartBtnRect = RectF()
     private val pauseRestartGameBtnRect = RectF()
     private val pauseSaveBtnRect = RectF()
     private val pauseLoadBtnRect = RectF()
     private val pauseCloseBtnRect = RectF()
+
+    // Armory & Equipment State & Touch Bounds
+    var isViewingArmory: Boolean = false
+    var selectedArmorIndex: Int = 0
+    val armorSlotRects = List(25) { RectF() }
+    val armoryEquipBtnRect = RectF()
+    val armoryCloseBtnRect = RectF()
 
     // Site of Grace Menu State & Touch Bounds
     var isRestingAtGrace: Boolean = false
@@ -611,12 +620,24 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         } else {
             drawTouchControls(canvas)
             renderer.drawPauseButton(canvas, width.toFloat(), pauseBtnRect)
-            if (isPaused) {
+            if (isViewingArmory) {
+                renderer.drawArmoryScreen(
+                    canvas,
+                    width.toFloat(),
+                    height.toFloat(),
+                    player,
+                    selectedArmorIndex,
+                    armorSlotRects,
+                    armoryEquipBtnRect,
+                    armoryCloseBtnRect
+                )
+            } else if (isPaused) {
                 renderer.drawPauseMenu(
                     canvas,
                     width.toFloat(),
                     height.toFloat(),
                     pauseContinueBtnRect,
+                    pauseEquipmentBtnRect,
                     pauseRestartBtnRect,
                     pauseRestartGameBtnRect,
                     pauseSaveBtnRect,
@@ -981,6 +1002,46 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         }
 
         // ==========================================
+        // ARMORY & EQUIPMENT TOUCH HANDLING
+        // ==========================================
+        if (isViewingArmory) {
+            if (event.actionMasked == MotionEvent.ACTION_DOWN || event.actionMasked == MotionEvent.ACTION_POINTER_DOWN) {
+                val index = event.actionIndex
+                val px = event.getX(index)
+                val py = event.getY(index)
+
+                val armors = player.inventoryArmors.ifEmpty { Armors.ALL_ARMORS }
+
+                if (armoryCloseBtnRect.contains(px, py)) {
+                    isViewingArmory = false
+                    soundManager.playSwitch()
+                    hapticManager.vibrateAttack()
+                    return true
+                }
+
+                if (armoryEquipBtnRect.contains(px, py)) {
+                    if (selectedArmorIndex in armors.indices) {
+                        player.equipArmor(armors[selectedArmorIndex])
+                        soundManager.playCheckpoint()
+                        hapticManager.vibrateHeavyAttack()
+                        gameStatusText = "✦ Equipped ${armors[selectedArmorIndex].name}! ✦"
+                    }
+                    return true
+                }
+
+                for (i in armorSlotRects.indices) {
+                    if (i < armors.size && armorSlotRects[i].contains(px, py)) {
+                        selectedArmorIndex = i
+                        soundManager.playSwitch()
+                        hapticManager.vibrateAttack()
+                        return true
+                    }
+                }
+            }
+            return true
+        }
+
+        // ==========================================
         // PAUSE MODAL TOUCH HANDLING
         // ==========================================
         if (isPaused) {
@@ -991,6 +1052,12 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
                 if (pauseContinueBtnRect.contains(px, py) || pauseCloseBtnRect.contains(px, py)) {
                     isPaused = false
+                    soundManager.playSwitch()
+                    hapticManager.vibrateAttack()
+                    return true
+                } else if (pauseEquipmentBtnRect.contains(px, py)) {
+                    isViewingArmory = true
+                    selectedArmorIndex = player.inventoryArmors.indexOf(player.equippedArmor).coerceAtLeast(0)
                     soundManager.playSwitch()
                     hapticManager.vibrateAttack()
                     return true
@@ -1143,6 +1210,15 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                     val py = event.getY(index)
                     if (pauseBtnRect.contains(px, py)) {
                         isPaused = true
+                        player.moveLeft = false
+                        player.moveRight = false
+                        soundManager.playSwitch()
+                        hapticManager.vibrateAttack()
+                        return true
+                    }
+                    if (renderer.armorBadgeRect.contains(px, py)) {
+                        isViewingArmory = true
+                        selectedArmorIndex = player.inventoryArmors.indexOf(player.equippedArmor).coerceAtLeast(0)
                         player.moveLeft = false
                         player.moveRight = false
                         soundManager.playSwitch()

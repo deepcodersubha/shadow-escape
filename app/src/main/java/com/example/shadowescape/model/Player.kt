@@ -23,6 +23,35 @@ class Player(startX: Float, startY: Float) {
         Weapons.GOLDEN_WARHAMMER,
         Weapons.ASTRAL_STAFF
     )
+
+    // Visual Armor & Attire Customization
+    var equippedArmor: ArmorPiece = Armors.SHADOW_CHITIN_VEST
+    val inventoryArmors: MutableList<ArmorPiece> = mutableListOf(
+        Armors.SHADOW_CHITIN_VEST,
+        Armors.GILDED_SUN_TEMPLAR,
+        Armors.GLINTSTONE_SPELLPLATE,
+        Armors.CRIMSON_EXECUTIONER,
+        Armors.ASTRAL_STARLIGHT_MANTLE,
+        Armors.DARK_IRON_FULLPLATE,
+        Armors.TWILIGHT_PHANTOM_SHROUD,
+        Armors.MASTERLESS_RONIN_GAMBESON,
+        Armors.WEATHERED_TARNISHED_CUIRASS,
+        Armors.DRAGONBONE_COLOSSUS,
+        Armors.ROYAL_SUN_AEGIS,
+        Armors.CRUCIBLE_CHAMPION_PLATE,
+        Armors.VOID_KNIGHT_DREADPLATE,
+        Armors.PALE_STAR_AEGIS,
+        Armors.GILDED_DRAGON_LORD,
+        Armors.FROSTBORNE_REGALIA,
+        Armors.SHADOW_STALKER_SUIT
+    )
+
+    fun equipArmor(armor: ArmorPiece) {
+        equippedArmor = armor
+        if (!inventoryArmors.contains(armor)) {
+            inventoryArmors.add(armor)
+        }
+    }
     var isAttacking: Boolean = false
     var attackTimer: Float = 0f
     var attackDuration: Float = 0.22f
@@ -409,6 +438,10 @@ class Player(startX: Float, startY: Float) {
             }
         }
         equippedWeapon = origin.startingWeapon
+        equippedArmor = Armors.getStartingArmorForOrigin(origin.id)
+        if (!inventoryArmors.contains(equippedArmor)) {
+            inventoryArmors.add(0, equippedArmor)
+        }
         attackComboIndex = 1
         comboResetTimer = 0f
         isAttacking = false
@@ -429,7 +462,9 @@ class Player(startX: Float, startY: Float) {
 
     fun takeDamage(amount: Float): Boolean {
         if (!isAlive || isInvulnerable) return false
-        val died = stats.takeDamage(amount)
+        val defPercent = (equippedArmor.physicalDef / 100f).coerceIn(0f, 0.70f)
+        val reducedAmount = (amount * (1f - defPercent)).coerceAtLeast(1f)
+        val died = stats.takeDamage(reducedAmount)
         if (died) {
             isAlive = false
         }

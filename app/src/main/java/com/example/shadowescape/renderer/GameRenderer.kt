@@ -1624,6 +1624,7 @@ class GameRenderer(assetManager: AssetManager) {
         // 7. Souls RPG HUD & Weapon Badge
         drawSoulsHud(canvas, player)
         drawWeaponBadge(canvas, player, screenWidth)
+        drawArmorBadge(canvas, player, screenWidth)
         drawBossHealthBar(canvas, level, screenWidth, screenHeight)
 
         level.checkpointNotification?.let { notif ->
@@ -2199,6 +2200,40 @@ class GameRenderer(assetManager: AssetManager) {
         }
     }
 
+    val armorBadgeRect = RectF()
+    private val armorNamePaint = Paint().apply {
+        color = Color.WHITE
+        textSize = 12f
+        isFakeBoldText = true
+        isAntiAlias = true
+    }
+    private val armorDefPaint = Paint().apply {
+        color = Color.parseColor("#38BDF8")
+        textSize = 10.5f
+        isAntiAlias = true
+    }
+
+    private fun drawArmorBadge(canvas: Canvas, player: Player, screenWidth: Float) {
+        val armor = player.equippedArmor
+        val cardW = 236f
+        val cardH = 36f
+        val cardX = screenWidth - cardW - 36f - 56f
+        val cardY = 82f
+        armorBadgeRect.set(cardX, cardY, cardX + cardW, cardY + cardH)
+
+        canvas.drawRoundRect(armorBadgeRect, 8f, 8f, weaponCardPaint)
+        canvas.drawRoundRect(armorBadgeRect, 8f, 8f, weaponCardBorder)
+
+        val bmp = playerAnimator.armorRenderer.getBitmap(armor.assetFile)
+        val iconSize = 26f
+        val iconRect = RectF(cardX + 8f, cardY + 5f, cardX + 8f + iconSize, cardY + 5f + iconSize)
+        if (bmp != null) {
+            canvas.drawBitmap(bmp, null, iconRect, null)
+        }
+        canvas.drawText(armor.name, cardX + 40f, cardY + 16f, armorNamePaint)
+        canvas.drawText("DEF: +${armor.physicalDef.toInt()}%  •  POISE: +${armor.poise.toInt()}  [ARMOR]", cardX + 40f, cardY + 30f, armorDefPaint)
+    }
+
     fun drawPauseButton(canvas: Canvas, screenWidth: Float, pauseBtnRect: RectF) {
         val size = 46f
         val px = screenWidth - 36f - size
@@ -2226,6 +2261,7 @@ class GameRenderer(assetManager: AssetManager) {
         screenWidth: Float,
         screenHeight: Float,
         continueRect: RectF,
+        equipmentRect: RectF,
         restartCheckpointRect: RectF,
         restartGameRect: RectF,
         saveRect: RectF,
@@ -2237,8 +2273,8 @@ class GameRenderer(assetManager: AssetManager) {
         canvas.drawRect(0f, 0f, screenWidth, screenHeight, pauseOverlayPaint)
 
         // 2. Centered Modal Box
-        val modalW = 550f
-        val modalH = 490f
+        val modalW = 560f
+        val modalH = 520f
         val cx = screenWidth / 2f
         val cy = screenHeight / 2f
         val left = cx - modalW / 2f
@@ -2279,93 +2315,99 @@ class GameRenderer(assetManager: AssetManager) {
         pauseSubTitlePaint.color = Color.parseColor("#E2E8F0")
         canvas.drawText(infoText, cx, infoY, pauseSubTitlePaint)
 
-        // 5 Action Buttons
+        // Action Buttons
         val btnW = modalW - 56f
-        val btnH = 50f
+        val btnH = 46f
         val btnLeft = cx - btnW / 2f
         val btnRight = cx + btnW / 2f
-        val startY = top + 104f
-        val rowGap = 58f
+        val startY = top + 98f
+        val rowGap = 52f
 
         // 1. CONTINUE BUTTON (Interactive)
         continueRect.set(btnLeft, startY, btnRight, startY + btnH)
         pauseModalGlowPaint.color = Color.argb(40, 56, 189, 248)
-        canvas.drawRoundRect(continueRect, 10f, 10f, pauseModalGlowPaint)
+        canvas.drawRoundRect(continueRect, 8f, 8f, pauseModalGlowPaint)
         pauseBtnBgPaint.color = Color.parseColor("#152238")
-        canvas.drawRoundRect(continueRect, 10f, 10f, pauseBtnBgPaint)
+        canvas.drawRoundRect(continueRect, 8f, 8f, pauseBtnBgPaint)
         pauseBtnBorderPaint.color = Color.parseColor("#38BDF8")
-        canvas.drawRoundRect(continueRect, 10f, 10f, pauseBtnBorderPaint)
+        canvas.drawRoundRect(continueRect, 8f, 8f, pauseBtnBorderPaint)
 
         pauseItemTitlePaint.color = Color.WHITE
-        canvas.drawText("▶  CONTINUE", continueRect.left + 16f, continueRect.top + 23f, pauseItemTitlePaint)
+        canvas.drawText("▶  CONTINUE", continueRect.left + 16f, continueRect.top + 21f, pauseItemTitlePaint)
         pauseItemSubPaint.color = Color.parseColor("#94A3B8")
-        canvas.drawText("Resume your expedition through the shadows", continueRect.left + 16f, continueRect.top + 40f, pauseItemSubPaint)
+        canvas.drawText("Resume your expedition through the shadows", continueRect.left + 16f, continueRect.top + 37f, pauseItemSubPaint)
         pauseBadgePaint.color = Color.parseColor("#38BDF8")
         pauseBadgePaint.textAlign = Paint.Align.RIGHT
         canvas.drawText("RESUME ➔", continueRect.right - 16f, continueRect.centerY() + 4.5f, pauseBadgePaint)
 
-        // 2. RESTART CHECKPOINT (Interactive)
-        val restartY = startY + rowGap
-        restartCheckpointRect.set(btnLeft, restartY, btnRight, restartY + btnH)
-        pauseModalGlowPaint.color = Color.argb(40, 245, 158, 11)
-        canvas.drawRoundRect(restartCheckpointRect, 10f, 10f, pauseModalGlowPaint)
-        pauseBtnBgPaint.color = Color.parseColor("#241812")
-        canvas.drawRoundRect(restartCheckpointRect, 10f, 10f, pauseBtnBgPaint)
-        pauseBtnBorderPaint.color = Color.parseColor("#F59E0B")
-        canvas.drawRoundRect(restartCheckpointRect, 10f, 10f, pauseBtnBorderPaint)
+        // 2. ARMOR & EQUIPMENT BUTTON (Interactive)
+        val equipY = startY + rowGap
+        equipmentRect.set(btnLeft, equipY, btnRight, equipY + btnH)
+        pauseModalGlowPaint.color = Color.argb(40, 56, 189, 248)
+        canvas.drawRoundRect(equipmentRect, 8f, 8f, pauseModalGlowPaint)
+        pauseBtnBgPaint.color = Color.parseColor("#152238")
+        canvas.drawRoundRect(equipmentRect, 8f, 8f, pauseBtnBgPaint)
+        pauseBtnBorderPaint.color = Color.parseColor("#38BDF8")
+        canvas.drawRoundRect(equipmentRect, 8f, 8f, pauseBtnBorderPaint)
 
         pauseItemTitlePaint.color = Color.WHITE
-        canvas.drawText("↺  RESTART CHECKPOINT", restartCheckpointRect.left + 16f, restartCheckpointRect.top + 23f, pauseItemTitlePaint)
+        canvas.drawText("🛡️  ARMOR & EQUIPMENT", equipmentRect.left + 16f, equipmentRect.top + 21f, pauseItemTitlePaint)
+        pauseItemSubPaint.color = Color.parseColor("#94A3B8")
+        canvas.drawText("Equipped: ${player.equippedArmor.name} (+${player.equippedArmor.physicalDef.toInt()}% DEF)", equipmentRect.left + 16f, equipmentRect.top + 37f, pauseItemSubPaint)
+        pauseBadgePaint.color = Color.parseColor("#38BDF8")
+        canvas.drawText("CUSTOMIZE ➔", equipmentRect.right - 16f, equipmentRect.centerY() + 4.5f, pauseBadgePaint)
+
+        // 3. RESTART CHECKPOINT (Interactive)
+        val restartY = equipY + rowGap
+        restartCheckpointRect.set(btnLeft, restartY, btnRight, restartY + btnH)
+        pauseModalGlowPaint.color = Color.argb(40, 245, 158, 11)
+        canvas.drawRoundRect(restartCheckpointRect, 8f, 8f, pauseModalGlowPaint)
+        pauseBtnBgPaint.color = Color.parseColor("#241812")
+        canvas.drawRoundRect(restartCheckpointRect, 8f, 8f, pauseBtnBgPaint)
+        pauseBtnBorderPaint.color = Color.parseColor("#F59E0B")
+        canvas.drawRoundRect(restartCheckpointRect, 8f, 8f, pauseBtnBorderPaint)
+
+        pauseItemTitlePaint.color = Color.WHITE
+        canvas.drawText("↺  RESTART CHECKPOINT", restartCheckpointRect.left + 16f, restartCheckpointRect.top + 21f, pauseItemTitlePaint)
         pauseItemSubPaint.color = Color.parseColor("#FCD34D")
-        canvas.drawText("Respawn at last safe altar & replenish flasks", restartCheckpointRect.left + 16f, restartCheckpointRect.top + 40f, pauseItemSubPaint)
+        canvas.drawText("Respawn at last safe altar & replenish flasks", restartCheckpointRect.left + 16f, restartCheckpointRect.top + 37f, pauseItemSubPaint)
         pauseBadgePaint.color = Color.parseColor("#F59E0B")
         canvas.drawText("RESPAWN ↺", restartCheckpointRect.right - 16f, restartCheckpointRect.centerY() + 4.5f, pauseBadgePaint)
 
-        // 3. RESTART GAME (Interactive)
+        // 4. RESTART GAME (Interactive)
         val restartGameY = restartY + rowGap
         restartGameRect.set(btnLeft, restartGameY, btnRight, restartGameY + btnH)
         pauseModalGlowPaint.color = Color.argb(40, 239, 68, 68)
-        canvas.drawRoundRect(restartGameRect, 10f, 10f, pauseModalGlowPaint)
+        canvas.drawRoundRect(restartGameRect, 8f, 8f, pauseModalGlowPaint)
         pauseBtnBgPaint.color = Color.parseColor("#2A1215")
-        canvas.drawRoundRect(restartGameRect, 10f, 10f, pauseBtnBgPaint)
+        canvas.drawRoundRect(restartGameRect, 8f, 8f, pauseBtnBgPaint)
         pauseBtnBorderPaint.color = Color.parseColor("#EF4444")
-        canvas.drawRoundRect(restartGameRect, 10f, 10f, pauseBtnBorderPaint)
+        canvas.drawRoundRect(restartGameRect, 8f, 8f, pauseBtnBorderPaint)
 
         pauseItemTitlePaint.color = Color.WHITE
-        canvas.drawText("⚡  RESTART GAME", restartGameRect.left + 16f, restartGameRect.top + 23f, pauseItemTitlePaint)
+        canvas.drawText("⚡  RESTART GAME", restartGameRect.left + 16f, restartGameRect.top + 21f, pauseItemTitlePaint)
         pauseItemSubPaint.color = Color.parseColor("#FCA5A5")
-        canvas.drawText("Restart run & return to Class Selection screen", restartGameRect.left + 16f, restartGameRect.top + 40f, pauseItemSubPaint)
+        canvas.drawText("Restart run & return to Character Creation", restartGameRect.left + 16f, restartGameRect.top + 37f, pauseItemSubPaint)
         pauseBadgePaint.color = Color.parseColor("#EF4444")
-        canvas.drawText("CLASS SELECT ↺", restartGameRect.right - 16f, restartGameRect.centerY() + 4.5f, pauseBadgePaint)
+        canvas.drawText("CHARACTER ↺", restartGameRect.right - 16f, restartGameRect.centerY() + 4.5f, pauseBadgePaint)
 
-        // 4. SAVE GAME (Placeholder UI)
-        val saveY = restartGameY + rowGap
-        saveRect.set(btnLeft, saveY, btnRight, saveY + btnH)
+        // 5. SAVE & LOAD ROW (Interactive)
+        val saveLoadY = restartGameY + rowGap
+        val halfW = (btnW - 12f) / 2f
+        saveRect.set(btnLeft, saveLoadY, btnLeft + halfW, saveLoadY + btnH)
+        loadRect.set(btnLeft + halfW + 12f, saveLoadY, btnRight, saveLoadY + btnH)
+
         pauseBtnBgPaint.color = Color.parseColor("#0F1420")
-        canvas.drawRoundRect(saveRect, 10f, 10f, pauseBtnBgPaint)
+        canvas.drawRoundRect(saveRect, 8f, 8f, pauseBtnBgPaint)
         pauseDividerPaint.color = Color.parseColor("#334155")
-        canvas.drawRoundRect(saveRect, 10f, 10f, pauseDividerPaint)
+        canvas.drawRoundRect(saveRect, 8f, 8f, pauseDividerPaint)
+        canvas.drawRoundRect(loadRect, 8f, 8f, pauseBtnBgPaint)
+        canvas.drawRoundRect(loadRect, 8f, 8f, pauseDividerPaint)
 
+        pauseItemTitlePaint.textSize = 13f
         pauseItemTitlePaint.color = Color.parseColor("#94A3B8")
-        canvas.drawText("💾  SAVE GAME", saveRect.left + 16f, saveRect.top + 23f, pauseItemTitlePaint)
-        pauseItemSubPaint.color = Color.parseColor("#64748B")
-        canvas.drawText("Inscribe soul memory into the monolith", saveRect.left + 16f, saveRect.top + 40f, pauseItemSubPaint)
-        pauseBadgePaint.color = Color.parseColor("#64748B")
-        canvas.drawText("[COMING SOON]", saveRect.right - 16f, saveRect.centerY() + 4.5f, pauseBadgePaint)
-
-        // 5. LOAD GAME (Placeholder UI)
-        val loadY = saveY + rowGap
-        loadRect.set(btnLeft, loadY, btnRight, loadY + btnH)
-        pauseBtnBgPaint.color = Color.parseColor("#0F1420")
-        canvas.drawRoundRect(loadRect, 10f, 10f, pauseBtnBgPaint)
-        canvas.drawRoundRect(loadRect, 10f, 10f, pauseDividerPaint)
-
-        pauseItemTitlePaint.color = Color.parseColor("#94A3B8")
-        canvas.drawText("📂  LOAD GAME", loadRect.left + 16f, loadRect.top + 23f, pauseItemTitlePaint)
-        pauseItemSubPaint.color = Color.parseColor("#64748B")
-        canvas.drawText("Awaken a slumbering soul chronicle", loadRect.left + 16f, loadRect.top + 40f, pauseItemSubPaint)
-        pauseBadgePaint.color = Color.parseColor("#64748B")
-        canvas.drawText("[COMING SOON]", loadRect.right - 16f, loadRect.centerY() + 4.5f, pauseBadgePaint)
+        canvas.drawText("💾  SAVE SOUL MEMORY", saveRect.left + 12f, saveRect.centerY() + 4.5f, pauseItemTitlePaint)
+        canvas.drawText("📂  LOAD SOUL MEMORY", loadRect.left + 12f, loadRect.centerY() + 4.5f, pauseItemTitlePaint)
 
         // Footer hint
         val footerY = bottom - 14f
@@ -2373,6 +2415,29 @@ class GameRenderer(assetManager: AssetManager) {
         pauseItemSubPaint.textAlign = Paint.Align.CENTER
         canvas.drawText("Progress is tethered to active Altars  •  Tap outside to resume", cx, footerY, pauseItemSubPaint)
         pauseItemSubPaint.textAlign = Paint.Align.LEFT
+    }
+
+    fun drawArmoryScreen(
+        canvas: Canvas,
+        screenWidth: Float,
+        screenHeight: Float,
+        player: Player,
+        selectedArmorIndex: Int,
+        armorSlotRects: List<RectF>,
+        equipBtnRect: RectF,
+        closeBtnRect: RectF
+    ) {
+        playerAnimator.armorRenderer.drawArmoryScreen(
+            canvas,
+            screenWidth,
+            screenHeight,
+            player,
+            selectedArmorIndex,
+            armorSlotRects,
+            equipBtnRect,
+            closeBtnRect,
+            globalTime
+        )
     }
 
     private fun drawBossHealthBar(canvas: Canvas, level: Level, screenWidth: Float, screenHeight: Float) {
