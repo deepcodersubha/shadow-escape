@@ -486,10 +486,6 @@ class PlayerAnimator(assetManager: AssetManager) {
             } else {
                 val anim = shinobiAnimations[currentState] ?: shinobiAnimations[PlayerAnimState.IDLE]
                 anim?.draw(canvas, destRect, flipH, paint)
-                if (player.isAlive && player.equippedWeapon.id != "katana") {
-                    weaponAnchor.set(pb.centerX - 22f, pb.bottom - 74f, pb.centerX + 22f, pb.bottom)
-                    weaponRenderer.draw(canvas, player, weaponAnchor)
-                }
             }
 
             if (player.isAlive && !player.isRolling) {
@@ -542,10 +538,6 @@ class PlayerAnimator(assetManager: AssetManager) {
             } else {
                 val anim = vanguardAnimations[currentState] ?: vanguardAnimations[PlayerAnimState.IDLE]
                 anim?.draw(canvas, destRect, flipH, paint)
-                if (player.isAlive && player.equippedWeapon.id != "broadsword") {
-                    weaponAnchor.set(pb.centerX - 22f, pb.bottom - 74f, pb.centerX + 22f, pb.bottom)
-                    weaponRenderer.draw(canvas, player, weaponAnchor)
-                }
             }
 
             if (player.isAlive && !player.isRolling) {
@@ -610,10 +602,6 @@ class PlayerAnimator(assetManager: AssetManager) {
             } else {
                 val anim = executionerAnimations[currentState] ?: executionerAnimations[PlayerAnimState.IDLE]
                 anim?.draw(canvas, destRect, flipH, paint)
-                if (player.isAlive && player.equippedWeapon.id != "greatsword") {
-                    weaponAnchor.set(pb.centerX - 24f, pb.bottom - 76f, pb.centerX + 24f, pb.bottom)
-                    weaponRenderer.draw(canvas, player, weaponAnchor)
-                }
             }
 
             if (player.isAlive && !player.isRolling) {
@@ -662,10 +650,6 @@ class PlayerAnimator(assetManager: AssetManager) {
             } else {
                 val anim = sorcererAnimations[currentState] ?: sorcererAnimations[PlayerAnimState.IDLE]
                 anim?.draw(canvas, destRect, flipH, paint)
-                if (player.isAlive && player.equippedWeapon.id != "staff") {
-                    weaponAnchor.set(pb.centerX - 22f, pb.bottom - 74f, pb.centerX + 22f, pb.bottom)
-                    weaponRenderer.draw(canvas, player, weaponAnchor)
-                }
             }
 
             if (player.isAlive && !player.isRolling) {
@@ -709,10 +693,6 @@ class PlayerAnimator(assetManager: AssetManager) {
             } else {
                 val anim = roninAnimations[currentState] ?: roninAnimations[PlayerAnimState.IDLE]
                 anim?.draw(canvas, destRect, flipH, paint)
-                if (player.isAlive && player.equippedWeapon.id != player.currentOrigin.startingWeapon.id) {
-                    weaponAnchor.set(pb.centerX - 22f, pb.bottom - 74f, pb.centerX + 22f, pb.bottom)
-                    weaponRenderer.draw(canvas, player, weaponAnchor)
-                }
             }
 
             if (player.isAlive && !player.isRolling) {
@@ -908,8 +888,10 @@ class PlayerAnimator(assetManager: AssetManager) {
         // Render fluid Dead Cells style skeletal avatar
         renderDeadCellsAvatar(canvas, player, destRect)
 
-        // Visibly render the weapon in the character's hand
-        weaponRenderer.draw(canvas, player, destRect)
+        // Visibly render the weapon in the character's hand only while swinging
+        if (player.isAttacking) {
+            weaponRenderer.draw(canvas, player, destRect)
+        }
 
         canvas.restore()
         return true
@@ -976,11 +958,7 @@ class PlayerAnimator(assetManager: AssetManager) {
             val torsoX = pb.centerX + socket.torsoXOffset * (if (flipH) -1f else 1f)
             val torsoY = pb.bottom - socket.torsoYOffset
             armorRenderer.drawOnPlayer(canvas, player, torsoX, torsoY, flipH, socket.torsoScale)
-
-            val handX = pb.centerX + socket.handXOffset * (if (flipH) -1f else 1f)
-            val handY = pb.bottom - socket.handYOffset
-            weaponAnchor.set(handX - 22f, handY - 40f, handX + 22f, handY + 20f)
-            weaponRenderer.draw(canvas, player, weaponAnchor)
+            // Weapon is hidden during Idle, Run, Jump, Fall — only visible while swinging!
         }
 
         canvas.restore()
