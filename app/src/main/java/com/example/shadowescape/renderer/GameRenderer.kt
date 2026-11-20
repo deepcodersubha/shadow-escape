@@ -753,14 +753,14 @@ class GameRenderer(assetManager: AssetManager) {
     }
     private val originHeaderTitle = Paint().apply {
         color = Color.parseColor("#F8FAFC")
-        textSize = 26f
+        textSize = 28f
         isAntiAlias = true
         typeface = Typeface.DEFAULT_BOLD
         textAlign = Paint.Align.CENTER
     }
     private val originHeaderSub = Paint().apply {
         color = Color.parseColor("#94A3B8")
-        textSize = 14f
+        textSize = 16f
         isAntiAlias = true
         textAlign = Paint.Align.CENTER
     }
@@ -790,7 +790,7 @@ class GameRenderer(assetManager: AssetManager) {
     }
     private val originTabText = Paint().apply {
         color = Color.WHITE
-        textSize = 14f
+        textSize = 16f
         isAntiAlias = true
         typeface = Typeface.DEFAULT_BOLD
         textAlign = Paint.Align.CENTER
@@ -807,20 +807,20 @@ class GameRenderer(assetManager: AssetManager) {
     }
     private val originAwakenBtnText = Paint().apply {
         color = Color.WHITE
-        textSize = 19f
+        textSize = 21f
         isAntiAlias = true
         typeface = Typeface.DEFAULT_BOLD
         textAlign = Paint.Align.CENTER
     }
     private val originStatLabel = Paint().apply {
         color = Color.parseColor("#94A3B8")
-        textSize = 14f
+        textSize = 16f
         isAntiAlias = true
         typeface = Typeface.DEFAULT_BOLD
     }
     private val originStatValue = Paint().apply {
         color = Color.parseColor("#F8FAFC")
-        textSize = 15f
+        textSize = 17f
         isAntiAlias = true
         typeface = Typeface.DEFAULT_BOLD
     }
@@ -830,12 +830,12 @@ class GameRenderer(assetManager: AssetManager) {
     }
     private val originDescText = Paint().apply {
         color = Color.parseColor("#CBD5E1")
-        textSize = 14f
+        textSize = 16f
         isAntiAlias = true
     }
     private val originBadgePaint = Paint().apply {
         color = Color.parseColor("#38BDF8")
-        textSize = 13f
+        textSize = 15f
         isAntiAlias = true
         typeface = Typeface.DEFAULT_BOLD
     }
@@ -853,7 +853,7 @@ class GameRenderer(assetManager: AssetManager) {
     }
     private val originStatBtnText = Paint().apply {
         color = Color.WHITE
-        textSize = 20f
+        textSize = 22f
         isAntiAlias = true
         typeface = Typeface.DEFAULT_BOLD
         textAlign = Paint.Align.CENTER
@@ -870,7 +870,7 @@ class GameRenderer(assetManager: AssetManager) {
     }
     private val originPointsPillText = Paint().apply {
         color = Color.parseColor("#FEF08A")
-        textSize = 14f
+        textSize = 16f
         isAntiAlias = true
         typeface = Typeface.DEFAULT_BOLD
         textAlign = Paint.Align.CENTER
@@ -891,7 +891,7 @@ class GameRenderer(assetManager: AssetManager) {
     }
     private val originPresetText = Paint().apply {
         color = Color.WHITE
-        textSize = 12.5f
+        textSize = 14.5f
         isAntiAlias = true
         typeface = Typeface.DEFAULT_BOLD
         textAlign = Paint.Align.CENTER
@@ -923,7 +923,7 @@ class GameRenderer(assetManager: AssetManager) {
     }
     private val avatarBadgeText = Paint().apply {
         color = Color.parseColor("#E2E8F0")
-        textSize = 13f
+        textSize = 15f
         isAntiAlias = true
         typeface = Typeface.DEFAULT_BOLD
         textAlign = Paint.Align.CENTER
@@ -3348,21 +3348,21 @@ class GameRenderer(assetManager: AssetManager) {
         if (tacticsBoxRect.height() >= 40f) {
             canvas.drawRoundRect(tacticsBoxRect, 8f, 8f, originTabInactiveBg)
             canvas.drawRoundRect(tacticsBoxRect, 8f, 8f, originCardBorder)
-            originBadgePaint.textSize = 12f
+            originBadgePaint.textSize = 14f
             originBadgePaint.color = originThemeColor
-            canvas.drawText("✦ TACTICAL PLAYSTYLE", tacticsBoxRect.left + 12f, tacticsBoxRect.top + 18f, originBadgePaint)
+            canvas.drawText("✦ TACTICAL PLAYSTYLE", tacticsBoxRect.left + 12f, tacticsBoxRect.top + 20f, originBadgePaint)
             originDescText.color = Color.parseColor("#CBD5E1")
-            originDescText.textSize = 11.5f
+            originDescText.textSize = 13.5f
             val tacticsWords = origin.tacticalPlaystyle.split(" ")
             var tLine = ""
-            var tY = tacticsBoxRect.top + 36f
+            var tY = tacticsBoxRect.top + 40f
             val tMaxW = tacticsBoxRect.width() - 24f
             for (w in tacticsWords) {
                 if (originDescText.measureText("$tLine $w") < tMaxW) {
                     tLine = if (tLine.isEmpty()) w else "$tLine $w"
                 } else {
                     canvas.drawText(tLine, tacticsBoxRect.left + 12f, tY, originDescText)
-                    tY += 16f
+                    tY += 19f
                     tLine = w
                 }
             }
@@ -3374,20 +3374,20 @@ class GameRenderer(assetManager: AssetManager) {
         // Info Section (To the right of portrait)
         val infoX = portraitX + portraitW + 18f
         val infoMaxW = leftCardRect.right - pad - infoX
-        var lY = leftCardRect.top + 32f
+        var lY = leftCardRect.top + 34f
 
-        originBadgePaint.textSize = 24f
+        originBadgePaint.textSize = 26f
         originBadgePaint.color = originThemeColor
         canvas.drawText("${origin.icon}  ${origin.name.uppercase()}", infoX, lY, originBadgePaint)
 
-        lY += 22f
+        lY += 24f
         originDescText.color = Color.parseColor("#94A3B8")
-        originDescText.textSize = 13.5f
+        originDescText.textSize = 15.5f
         canvas.drawText("ARCHETYPE: ${origin.title}   •   START LEVEL: ${origin.startingLevel}", infoX, lY, originDescText)
 
-        lY += 22f
+        lY += 24f
         originDescText.color = Color.parseColor("#E2E8F0")
-        originDescText.textSize = 12.5f
+        originDescText.textSize = 14.5f
         val words = origin.description.split(" ")
         var line = ""
         for (w in words) {
@@ -3395,49 +3395,49 @@ class GameRenderer(assetManager: AssetManager) {
                 line = if (line.isEmpty()) w else "$line $w"
             } else {
                 canvas.drawText(line, infoX, lY, originDescText)
-                lY += 18f
+                lY += 21f
                 line = w
             }
         }
         if (line.isNotEmpty()) {
             canvas.drawText(line, infoX, lY, originDescText)
-            lY += 20f
+            lY += 22f
         }
 
         // Weapon Showcase Sub-card
-        val weaponBoxRect = RectF(infoX, lY, leftCardRect.right - pad, lY + 98f)
+        val weaponBoxRect = RectF(infoX, lY, leftCardRect.right - pad, lY + 112f)
         canvas.drawRoundRect(weaponBoxRect, 8f, 8f, originTabInactiveBg)
         canvas.drawRoundRect(weaponBoxRect, 8f, 8f, originCardBorder)
 
         val wpn = origin.startingWeapon
-        originBadgePaint.textSize = 14.5f
+        originBadgePaint.textSize = 16.5f
         originBadgePaint.color = Color.parseColor("#38BDF8")
-        canvas.drawText("WEAPON: ${wpn.name}", weaponBoxRect.left + 14f, weaponBoxRect.top + 22f, originBadgePaint)
+        canvas.drawText("WEAPON: ${wpn.name}", weaponBoxRect.left + 14f, weaponBoxRect.top + 24f, originBadgePaint)
 
-        originDescText.textSize = 12.5f
+        originDescText.textSize = 14.5f
         originDescText.color = Color.parseColor("#CBD5E1")
-        canvas.drawText("DMG: ${wpn.baseDamage.toInt()}   •   Stamina: ${wpn.staminaCost.toInt()}   •   Type: ${wpn.type}", weaponBoxRect.left + 14f, weaponBoxRect.top + 43f, originDescText)
+        canvas.drawText("DMG: ${wpn.baseDamage.toInt()}   •   Stamina: ${wpn.staminaCost.toInt()}   •   Type: ${wpn.type}", weaponBoxRect.left + 14f, weaponBoxRect.top + 48f, originDescText)
 
-        originBadgePaint.textSize = 12.5f
+        originBadgePaint.textSize = 14.5f
         originBadgePaint.color = Color.parseColor("#FDE047")
-        canvas.drawText("SCALING:  STR [ ${wpn.strGrade} ]   AGI [ ${wpn.agiGrade} ]   INT [ ${wpn.intGrade} ]", weaponBoxRect.left + 14f, weaponBoxRect.top + 64f, originBadgePaint)
+        canvas.drawText("SCALING:  STR [ ${wpn.strGrade} ]   AGI [ ${wpn.agiGrade} ]   INT [ ${wpn.intGrade} ]", weaponBoxRect.left + 14f, weaponBoxRect.top + 72f, originBadgePaint)
 
-        originBadgePaint.textSize = 12f
+        originBadgePaint.textSize = 14f
         originBadgePaint.color = Color.parseColor("#A7F3D0")
-        canvas.drawText("SKILL: ${wpn.skillName} • ${wpn.skillDescription}", weaponBoxRect.left + 14f, weaponBoxRect.top + 84f, originBadgePaint)
+        canvas.drawText("SKILL: ${wpn.skillName} • ${wpn.skillDescription}", weaponBoxRect.left + 14f, weaponBoxRect.top + 96f, originBadgePaint)
 
         // Archetype Passives
-        lY = weaponBoxRect.bottom + 18f
-        originBadgePaint.textSize = 13.5f
+        lY = weaponBoxRect.bottom + 20f
+        originBadgePaint.textSize = 15.5f
         originBadgePaint.color = originThemeColor
         canvas.drawText("✦ ARCHETYPE PASSIVES & TRAITS", infoX, lY, originBadgePaint)
 
-        lY += 18f
+        lY += 20f
         for (trait in origin.traits) {
             originDescText.color = Color.parseColor("#E2E8F0")
-            originDescText.textSize = 12f
+            originDescText.textSize = 14f
             canvas.drawText(trait, infoX, lY, originDescText)
-            lY += 18f
+            lY += 20f
         }
 
         // ==========================================
@@ -3450,7 +3450,7 @@ class GameRenderer(assetManager: AssetManager) {
         var rY = rightCardRect.top + 28f
         val rX = rightCardRect.left + 22f
         val rRight = rightCardRect.right - 22f
-        originBadgePaint.textSize = 16.5f
+        originBadgePaint.textSize = 18.5f
         originBadgePaint.color = Color.parseColor("#F8FAFC")
         canvas.drawText("✦ ATTRIBUTE ALLOCATION & ATTUNEMENT", rX, rY, originBadgePaint)
 
@@ -3477,7 +3477,7 @@ class GameRenderer(assetManager: AssetManager) {
 
             // 1. Stat Name
             originStatLabel.color = Color.parseColor("#F1F5F9")
-            originStatLabel.textSize = 14f
+            originStatLabel.textSize = 16f
             canvas.drawText(name, rX, rowCenterY + 5f, originStatLabel)
 
             // 2. Minus Button [-]
@@ -3492,7 +3492,7 @@ class GameRenderer(assetManager: AssetManager) {
 
             // 3. Stat Value
             originStatValue.color = Color.WHITE
-            originStatValue.textSize = 18f
+            originStatValue.textSize = 20f
             canvas.drawText("$value", btnMinusX + btnW + 24f, rowCenterY + 6f, originStatValue)
 
             // 4. Plus Button [+]
@@ -3523,7 +3523,7 @@ class GameRenderer(assetManager: AssetManager) {
                 3 -> "Scaling: Katana Speed & Dodging"
                 else -> "Mana: ${50 + (intelligence - 10) * 10}  •  Sorcery"
             }
-            originDescText.textSize = 11.5f
+            originDescText.textSize = 13.5f
             originDescText.color = Color.parseColor("#94A3B8")
             canvas.drawText(desc, barStartX, rowCenterY + 20f, originDescText)
         }
@@ -3536,15 +3536,15 @@ class GameRenderer(assetManager: AssetManager) {
             canvas.drawRoundRect(guideBoxRect, 8f, 8f, originTabInactiveBg)
             canvas.drawRoundRect(guideBoxRect, 8f, 8f, originCardBorder)
 
-            originBadgePaint.textSize = 12.5f
+            originBadgePaint.textSize = 14.5f
             originBadgePaint.color = Color.parseColor("#38BDF8")
             canvas.drawText("✦ DYNAMIC CLASS ATTUNEMENTS", guideBoxRect.left + 14f, guideBoxRect.top + 20f, originBadgePaint)
 
-            originDescText.textSize = 11.5f
+            originDescText.textSize = 13.5f
             originDescText.color = Color.parseColor("#CBD5E1")
-            canvas.drawText("• Pure Strength ➔ Warrior   • Pure Int ➔ Astral Sorcerer   • Pure Agi ➔ Shadow Shinobi", guideBoxRect.left + 14f, guideBoxRect.top + 38f, originDescText)
-            canvas.drawText("• STR + INT ➔ Paladin / Magic Swordsman   • AGI + INT ➔ Nightblade   • STR + AGI ➔ Ronin", guideBoxRect.left + 14f, guideBoxRect.top + 56f, originDescText)
-            canvas.drawText("• High VIG + END ➔ Iron Vanguard   • Balanced Attributes ➔ Wanderer", guideBoxRect.left + 14f, guideBoxRect.top + 74f, originDescText)
+            canvas.drawText("• Pure Strength ➔ Warrior   • Pure Int ➔ Astral Sorcerer   • Pure Agi ➔ Shadow Shinobi", guideBoxRect.left + 14f, guideBoxRect.top + 40f, originDescText)
+            canvas.drawText("• STR + INT ➔ Paladin / Magic Swordsman   • AGI + INT ➔ Nightblade   • STR + AGI ➔ Ronin", guideBoxRect.left + 14f, guideBoxRect.top + 60f, originDescText)
+            canvas.drawText("• High VIG + END ➔ Iron Vanguard   • Balanced Attributes ➔ Wanderer", guideBoxRect.left + 14f, guideBoxRect.top + 80f, originDescText)
         }
 
         // Reset Points Button
@@ -3555,7 +3555,7 @@ class GameRenderer(assetManager: AssetManager) {
         originStatBtnBorder.color = Color.parseColor("#64748B")
         canvas.drawRoundRect(resetBtnRect, 6f, 6f, originStatBtnBorder)
         originPresetText.color = Color.parseColor("#E2E8F0")
-        originPresetText.textSize = 12f
+        originPresetText.textSize = 14f
         canvas.drawText("↺  RESET ALL POINTS", resetBtnRect.centerX(), resetBtnRect.centerY() + 4.5f, originPresetText)
 
         // 5. Bottom Navigation & Awaken Button
