@@ -3300,10 +3300,10 @@ class GameRenderer(assetManager: AssetManager) {
         originCardBorder.color = (originThemeColor and 0x00FFFFFF) or 0x66000000
         canvas.drawRoundRect(leftCardRect, 12f, 12f, originCardBorder)
 
-        // Avatar Portrait Frame
+        // Avatar Portrait Frame (4:5 / 3:4 golden portrait card ratio)
         val pad = 14f
-        val portraitW = minOf(colW * 0.36f, 260f)
-        val portraitH = contentH - pad * 2f
+        val portraitW = minOf(colW * 0.40f, 360f)
+        val portraitH = minOf(contentH * 0.62f, portraitW * 1.28f)
         val portraitX = leftCardRect.left + pad
         val portraitY = leftCardRect.top + pad
 
@@ -3317,7 +3317,19 @@ class GameRenderer(assetManager: AssetManager) {
             avatarClipPath.reset()
             avatarClipPath.addRoundRect(avatarFrameRect, 10f, 10f, Path.Direction.CW)
             canvas.clipPath(avatarClipPath)
-            avatarSrcRect.set(0, 0, bmp.width, bmp.height)
+
+            // Aspect-ratio preserving center-crop: perfectly prevents vertical/horizontal squeezing!
+            val frameAspect = avatarFrameRect.width() / avatarFrameRect.height()
+            val bmpAspect = bmp.width.toFloat() / bmp.height.toFloat()
+            if (bmpAspect > frameAspect) {
+                val cropW = (bmp.height * frameAspect).toInt()
+                val cropX = (bmp.width - cropW) / 2
+                avatarSrcRect.set(cropX, 0, cropX + cropW, bmp.height)
+            } else {
+                val cropH = (bmp.width / frameAspect).toInt()
+                val cropY = (bmp.height - cropH) / 2
+                avatarSrcRect.set(0, cropY, bmp.width, cropY + cropH)
+            }
             canvas.drawBitmap(bmp, avatarSrcRect, avatarFrameRect, avatarBitmapPaint)
 
             val badgeH = 32f
@@ -3330,6 +3342,34 @@ class GameRenderer(assetManager: AssetManager) {
         avatarBorderPaint.color = originThemeColor
         canvas.drawRoundRect(avatarFrameRect, 10f, 10f, avatarBorderPaint)
         canvas.drawText("${origin.icon} ${origin.title}", avatarFrameRect.centerX(), avatarFrameRect.bottom - 10f, avatarBadgeText)
+
+        // Tactical Playstyle Box placed neatly directly below the portrait in the left column
+        val tacticsBoxRect = RectF(portraitX, portraitY + portraitH + 12f, portraitX + portraitW, leftCardRect.bottom - pad)
+        if (tacticsBoxRect.height() >= 40f) {
+            canvas.drawRoundRect(tacticsBoxRect, 8f, 8f, originTabInactiveBg)
+            canvas.drawRoundRect(tacticsBoxRect, 8f, 8f, originCardBorder)
+            originBadgePaint.textSize = 12f
+            originBadgePaint.color = originThemeColor
+            canvas.drawText("✦ TACTICAL PLAYSTYLE", tacticsBoxRect.left + 12f, tacticsBoxRect.top + 18f, originBadgePaint)
+            originDescText.color = Color.parseColor("#CBD5E1")
+            originDescText.textSize = 11.5f
+            val tacticsWords = origin.tacticalPlaystyle.split(" ")
+            var tLine = ""
+            var tY = tacticsBoxRect.top + 36f
+            val tMaxW = tacticsBoxRect.width() - 24f
+            for (w in tacticsWords) {
+                if (originDescText.measureText("$tLine $w") < tMaxW) {
+                    tLine = if (tLine.isEmpty()) w else "$tLine $w"
+                } else {
+                    canvas.drawText(tLine, tacticsBoxRect.left + 12f, tY, originDescText)
+                    tY += 16f
+                    tLine = w
+                }
+            }
+            if (tLine.isNotEmpty() && tY <= tacticsBoxRect.bottom - 6f) {
+                canvas.drawText(tLine, tacticsBoxRect.left + 12f, tY, originDescText)
+            }
+        }
 
         // Info Section (To the right of portrait)
         val infoX = portraitX + portraitW + 18f
@@ -3399,18 +3439,6 @@ class GameRenderer(assetManager: AssetManager) {
             canvas.drawText(trait, infoX, lY, originDescText)
             lY += 18f
         }
-
-        // Tactical Playstyle Box
-        lY += 4f
-        val tacticsBoxRect = RectF(infoX, lY, leftCardRect.right - pad, leftCardRect.bottom - pad)
-        canvas.drawRoundRect(tacticsBoxRect, 8f, 8f, originTabInactiveBg)
-        canvas.drawRoundRect(tacticsBoxRect, 8f, 8f, originCardBorder)
-        originBadgePaint.textSize = 12f
-        originBadgePaint.color = originThemeColor
-        canvas.drawText("✦ TACTICAL PLAYSTYLE", tacticsBoxRect.left + 12f, tacticsBoxRect.top + 18f, originBadgePaint)
-        originDescText.color = Color.parseColor("#CBD5E1")
-        originDescText.textSize = 11.5f
-        canvas.drawText(origin.tacticalPlaystyle, tacticsBoxRect.left + 12f, tacticsBoxRect.top + 38f, originDescText)
 
         // ==========================================
         // RIGHT CARD: Interactive Attribute Terminal
