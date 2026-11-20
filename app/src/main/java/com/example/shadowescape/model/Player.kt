@@ -22,6 +22,8 @@ class Player(startX: Float, startY: Float) {
         Weapons.IRON_BATTLE_AXE,
         Weapons.EXECUTIONER_GREATSWORD,
         Weapons.GOLDEN_WARHAMMER,
+        Weapons.GREAT_HAMMER,
+        Weapons.GIGIS_DARK_STAFF,
         Weapons.ASTRAL_STAFF
     )
 

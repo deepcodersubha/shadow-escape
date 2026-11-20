@@ -935,9 +935,11 @@ class PlayerAnimator(assetManager: AssetManager) {
             armorRenderer.drawOnPlayer(canvas, player, torsoX, torsoY, flipH, socket.torsoScale)
 
             // Render weapon pinned to dynamic hand socket with swing angle
-            val handX = pb.centerX + socket.handXOffset * (if (flipH) -1f else 1f)
-            val handY = pb.bottom - socket.handYOffset
-            weaponAnchor.set(handX - 22f, handY - 40f, handX + 22f, handY + 20f)
+            val is2H = player.equippedWeapon.isTwoHanded
+            val handX = pb.centerX + (socket.handXOffset + (if (is2H) 3f else 0f)) * (if (flipH) -1f else 1f)
+            val handY = pb.bottom - socket.handYOffset + (if (is2H) -2f else 0f)
+            val weaponScale = if (is2H) 1.25f else 1.0f
+            weaponAnchor.set(handX - 22f * weaponScale, handY - 40f * weaponScale, handX + 22f * weaponScale, handY + 20f * weaponScale)
             weaponRenderer.draw(canvas, player, weaponAnchor)
         } else {
             val animState = when (currentState) {

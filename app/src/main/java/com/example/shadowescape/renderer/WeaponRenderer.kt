@@ -285,8 +285,8 @@ class WeaponRenderer(assetManager: AssetManager? = null) {
             }
         }
 
-        // Render character gauntlet/glove holding the grip firmly
-        renderGripHand(canvas)
+        // Render character gauntlet/glove holding the grip firmly (both hands if 2-handed!)
+        renderGripHand(canvas, weapon.isTwoHanded)
 
         canvas.restore()
     }
@@ -569,9 +569,15 @@ class WeaponRenderer(assetManager: AssetManager? = null) {
         canvas.drawCircle(headX, 0f, 5.5f + pulse * 0.7f, runePaint)
     }
 
-    private fun renderGripHand(canvas: Canvas) {
-        // Character's armored gauntlet wrapping around the hilt
+    private fun renderGripHand(canvas: Canvas, isTwoHanded: Boolean = false) {
+        // Primary lead hand wrapping the hilt
         canvas.drawRoundRect(-4f, -4f, 4f, 4f, 2f, 2f, handGlovePaint)
         canvas.drawRoundRect(-2f, -3.5f, 3f, 3.5f, 1.5f, 1.5f, handKnucklePaint)
+
+        // For heavy two-handed weapons, render supporting secondary hand on the shaft/grip!
+        if (isTwoHanded) {
+            canvas.drawRoundRect(-11f, -3.5f, -4f, 3.5f, 2f, 2f, handGlovePaint)
+            canvas.drawRoundRect(-9.5f, -3f, -5f, 3f, 1.5f, 1.5f, handKnucklePaint)
+        }
     }
 }

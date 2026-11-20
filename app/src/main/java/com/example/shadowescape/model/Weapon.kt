@@ -19,6 +19,11 @@ enum class StatusEffect(val displayName: String, val colorHex: String) {
     POISON("Poison", "#22C55E")
 }
 
+enum class WieldStance(val displayName: String) {
+    ONE_HANDED("1-Handed"),
+    TWO_HANDED("2-Handed")
+}
+
 enum class ItemRarity(val displayName: String, val colorHex: String) {
     COMMON("Common", "#94A3B8"),
     RARE("Rare", "#38BDF8"),
@@ -44,13 +49,64 @@ data class Weapon(
     val skillManaCost: Float = 14f,
     val skillDescription: String = "A martial weapon art.",
     val statusEffect: StatusEffect = StatusEffect.NONE,
-    val statusBuildup: Float = 0f
+    val statusBuildup: Float = 0f,
+    val stance: WieldStance = WieldStance.ONE_HANDED,
+    val reqStr: Int = 0,
+    val reqAgi: Int = 0,
+    val reqInt: Int = 0
 ) {
+    val isTwoHanded: Boolean get() = stance == WieldStance.TWO_HANDED
+
+    fun calculateEffectiveDamage(stats: PlayerStats): Float {
+        val totalReq = reqStr + reqAgi + reqInt
+        if (totalReq <= 0) return baseDamage
+
+        val deficitStr = maxOf(0, reqStr - stats.strength)
+        val deficitAgi = maxOf(0, reqAgi - stats.agility)
+        val deficitInt = maxOf(0, reqInt - stats.intelligence)
+        val totalDeficit = deficitStr + deficitAgi + deficitInt
+
+        if (totalDeficit <= 0) return baseDamage
+
+        val pointValue = baseDamage / totalReq.toFloat()
+        val penalty = totalDeficit * 2f * pointValue
+        return maxOf(1f, baseDamage - penalty)
+    }
+
+    fun calculateStatPenalty(stats: PlayerStats): Float {
+        val totalReq = reqStr + reqAgi + reqInt
+        if (totalReq <= 0) return 0f
+
+        val deficitStr = maxOf(0, reqStr - stats.strength)
+        val deficitAgi = maxOf(0, reqAgi - stats.agility)
+        val deficitInt = maxOf(0, reqInt - stats.intelligence)
+        val totalDeficit = deficitStr + deficitAgi + deficitInt
+
+        if (totalDeficit <= 0) return 0f
+
+        val pointValue = baseDamage / totalReq.toFloat()
+        return (totalDeficit * 2f * pointValue).coerceAtMost(baseDamage - 1f)
+    }
+
+    fun hasStatRequirementsMet(stats: PlayerStats): Boolean {
+        return stats.strength >= reqStr && stats.agility >= reqAgi && stats.intelligence >= reqInt
+    }
+
+    fun getRequirementString(): String {
+        val parts = mutableListOf<String>()
+        if (reqStr > 0) parts.add("$reqStr STR")
+        if (reqAgi > 0) parts.add("$reqAgi AGI")
+        if (reqInt > 0) parts.add("$reqInt INT")
+        return if (parts.isEmpty()) "None" else parts.joinToString(" • ")
+    }
+
     fun calculateDamage(stats: PlayerStats): Float {
+        val effectiveBase = calculateEffectiveDamage(stats)
         val strBonus = (stats.strength - 10).coerceAtLeast(0) * strScaling
         val agiBonus = (stats.agility - 10).coerceAtLeast(0) * agiScaling
         val intBonus = (stats.intelligence - 10).coerceAtLeast(0) * intScaling
-        return baseDamage + strBonus + agiBonus + intBonus
+        val metRatio = if (hasStatRequirementsMet(stats)) 1.0f else (effectiveBase / baseDamage.coerceAtLeast(1f))
+        return effectiveBase + (strBonus + agiBonus + intBonus) * metRatio
     }
 
     private fun scalingToGrade(scaling: Float): String {
@@ -154,7 +210,51 @@ object Weapons {
         range = 75f,
         skillName = "Earth Tremor",
         skillManaCost = 10f,
-        skillDescription = "Vigorously bashes the bedrock, sending concussive vibrations that stagger nearby foes."
+        skillDescription = "Vigorously bashes the bedrock, sending concussive vibrations that stagger nearby foes.",
+        stance = WieldStance.ONE_HANDED,
+        reqStr = 10
+    )
+
+    val GREAT_HAMMER = Weapon(
+        id = "great_hammer",
+        name = "Great Hammer",
+        type = WeaponType.CLUB,
+        description = "A colossal warhammer requiring tremendous Strength. Can only be wielded two-handed. Punishes lacking attributes severely.",
+        baseDamage = 150f,
+        strScaling = 2.4f,
+        agiScaling = 0.0f,
+        intScaling = 0.0f,
+        staminaCost = 28f,
+        attackDuration = 0.42f,
+        range = 95f,
+        rarity = ItemRarity.EPIC,
+        stance = WieldStance.TWO_HANDED,
+        reqStr = 15,
+        skillName = "Earthshatter Slam",
+        skillManaCost = 18f,
+        skillDescription = "Bring down colossal concussive force that knocks down all surrounding enemies."
+    )
+
+    val GIGIS_DARK_STAFF = Weapon(
+        id = "gigis_dark_staff",
+        name = "Gigi's Dark Staff",
+        type = WeaponType.STAFF,
+        description = "A legendary ancient catalyst channeling void stars. Demands both deep Intelligence and Strength to control its celestial power.",
+        baseDamage = 300f,
+        strScaling = 1.0f,
+        agiScaling = 0.0f,
+        intScaling = 2.8f,
+        staminaCost = 16f,
+        manaCost = 28f,
+        attackDuration = 0.38f,
+        range = 450f,
+        rarity = ItemRarity.LEGENDARY,
+        stance = WieldStance.TWO_HANDED,
+        reqStr = 10,
+        reqInt = 20,
+        skillName = "Abyssal Singularity",
+        skillManaCost = 32f,
+        skillDescription = "Summons a gravity well of dark stars that compresses and eradicates foes."
     )
 
     // --- DISCOVERABLE LOOT & CHEST WEAPONS (100% Original IP) ---
@@ -453,8 +553,10 @@ object Weapons {
         IRON_BATTLE_AXE,
         EXECUTIONER_GREATSWORD,
         GOLDEN_WARHAMMER,
+        GREAT_HAMMER,
         CRYSTAL_MACE,
         ASTRAL_STAFF,
+        GIGIS_DARK_STAFF,
         HARDWOOD_CLUB,
         NIGHTPROWLER_TALON,
         WYRM_WING_HALBERD,

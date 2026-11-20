@@ -2171,19 +2171,26 @@ class GameRenderer(assetManager: AssetManager) {
     private fun drawWeaponBadge(canvas: Canvas, player: Player, screenWidth: Float) {
         val weapon = player.equippedWeapon
         val damage = weapon.calculateDamage(player.stats).toInt()
-        val cardW = 236f
-        val cardH = 46f
+        val penalty = weapon.calculateStatPenalty(player.stats).toInt()
+        val hasReq = weapon.hasStatRequirementsMet(player.stats)
+        val cardW = 260f
+        val cardH = 48f
         val cardX = screenWidth - cardW - 36f - 56f
         val cardY = 30f
 
         canvas.drawRoundRect(cardX, cardY, cardX + cardW, cardY + cardH, 8f, 8f, weaponCardPaint)
+        weaponCardBorder.color = if (hasReq) Color.parseColor("#38BDF8") else Color.parseColor("#EF4444")
         canvas.drawRoundRect(cardX, cardY, cardX + cardW, cardY + cardH, 8f, 8f, weaponCardBorder)
 
-        weaponBadgeIconRect.set(cardX + 8f, cardY + 6f, cardX + 42f, cardY + 40f)
+        weaponBadgeIconRect.set(cardX + 8f, cardY + 7f, cardX + 42f, cardY + 41f)
         val drewIcon = playerAnimator.weaponRenderer.drawIcon(canvas, weapon.id, weaponBadgeIconRect)
+        val stanceBadge = if (weapon.isTwoHanded) "2H" else "1H"
+        val dmgSubtext = if (hasReq) "DMG: $damage [$stanceBadge] 🔄" else "DMG: $damage (-$penalty PENALTY) 🔄"
+        weaponDmgPaint.color = if (hasReq) Color.parseColor("#38BDF8") else Color.parseColor("#F87171")
+
         if (drewIcon) {
-            canvas.drawText(weapon.name, cardX + 48f, cardY + 22f, weaponNamePaint)
-            canvas.drawText("DMG: $damage  [SWAP 🔄]", cardX + 48f, cardY + 39f, weaponDmgPaint)
+            canvas.drawText("${weapon.name} [$stanceBadge]", cardX + 48f, cardY + 22f, weaponNamePaint)
+            canvas.drawText(dmgSubtext, cardX + 48f, cardY + 39f, weaponDmgPaint)
         } else {
             val icon = when (weapon.type) {
                 WeaponType.KATANA -> "🗡"
@@ -2195,8 +2202,8 @@ class GameRenderer(assetManager: AssetManager) {
                 WeaponType.SCYTHE -> "⚔"
                 WeaponType.GAUNTLET -> "🥊"
             }
-            canvas.drawText("$icon ${weapon.name}", cardX + 12f, cardY + 24f, weaponNamePaint)
-            canvas.drawText("DMG: $damage  [SWAP 🔄]", cardX + 12f, cardY + 40f, weaponDmgPaint)
+            canvas.drawText("$icon ${weapon.name} [$stanceBadge]", cardX + 12f, cardY + 22f, weaponNamePaint)
+            canvas.drawText(dmgSubtext, cardX + 12f, cardY + 39f, weaponDmgPaint)
         }
     }
 
@@ -2311,7 +2318,9 @@ class GameRenderer(assetManager: AssetManager) {
         val originName = player.currentOrigin.name
         val weaponName = player.equippedWeapon.name
         val dmg = player.equippedWeapon.calculateDamage(player.stats).toInt()
-        val infoText = "$originName  |  $weaponName (DMG: $dmg)  |  ✦ ${player.stats.essence} Essence"
+        val penalty = player.equippedWeapon.calculateStatPenalty(player.stats).toInt()
+        val penaltyStr = if (penalty > 0) " (-$penalty PENALTY)" else ""
+        val infoText = "$originName  |  $weaponName [${player.equippedWeapon.stance.displayName}] (DMG: $dmg$penaltyStr)  |  ✦ ${player.stats.essence} Essence"
         pauseSubTitlePaint.color = Color.parseColor("#E2E8F0")
         canvas.drawText(infoText, cx, infoY, pauseSubTitlePaint)
 
@@ -3412,11 +3421,11 @@ class GameRenderer(assetManager: AssetManager) {
         val wpn = origin.startingWeapon
         originBadgePaint.textSize = 16.5f
         originBadgePaint.color = Color.parseColor("#38BDF8")
-        canvas.drawText("WEAPON: ${wpn.name}", weaponBoxRect.left + 14f, weaponBoxRect.top + 24f, originBadgePaint)
+        canvas.drawText("WEAPON: ${wpn.name} [${wpn.stance.displayName.uppercase()}]", weaponBoxRect.left + 14f, weaponBoxRect.top + 24f, originBadgePaint)
 
         originDescText.textSize = 14.5f
         originDescText.color = Color.parseColor("#CBD5E1")
-        canvas.drawText("DMG: ${wpn.baseDamage.toInt()}   •   Stamina: ${wpn.staminaCost.toInt()}   •   Type: ${wpn.type}", weaponBoxRect.left + 14f, weaponBoxRect.top + 48f, originDescText)
+        canvas.drawText("DMG: ${wpn.baseDamage.toInt()}   •   REQ: ${wpn.getRequirementString()}   •   Stamina: ${wpn.staminaCost.toInt()}", weaponBoxRect.left + 14f, weaponBoxRect.top + 48f, originDescText)
 
         originBadgePaint.textSize = 14.5f
         originBadgePaint.color = Color.parseColor("#FDE047")
