@@ -250,11 +250,11 @@ class PlayerAnimator(assetManager: AssetManager) {
         sorcererAttack2Anim = loadStrip(assets, "characters/sorcerer/sorcerer_attack2.png", 231, 190, 8, 18f, false)
         sorcererHitAnim = loadStrip(assets, "characters/sorcerer/sorcerer_hit.png", 231, 190, 4, 14f, false)
 
-        // In-House Modular Mannequin Sprite Animations (128x128 per frame, 6 frames)
+        // In-House Modular Mannequin Sprite Animations (128x128 per frame, Idle: 6 frames, Run: 8 frames)
         loadStrip(assets, "characters/modular/modular_idle.png", 128, 128, 6, 8f, true)?.let {
             modularAnimations[PlayerAnimState.IDLE] = it
         }
-        loadStrip(assets, "characters/modular/modular_run.png", 128, 128, 6, 12f, true)?.let {
+        loadStrip(assets, "characters/modular/modular_run.png", 128, 128, 8, 14f, true)?.let {
             modularAnimations[PlayerAnimState.RUN] = it
         }
         loadStrip(assets, "characters/modular/modular_jump.png", 128, 128, 6, 10f, false)?.let {
@@ -922,7 +922,8 @@ class PlayerAnimator(assetManager: AssetManager) {
             val rollAngle = progress * 360f
             canvas.rotate(if (player.facingRight) rollAngle else -rollAngle, pb.centerX, pb.bottom - 32f)
             val anim = modularAnimations[PlayerAnimState.RUN] ?: modularAnimations[PlayerAnimState.IDLE]
-            anim?.drawFrame(canvas, destRect, ((progress * 5.99f).toInt() % 6), flipH, paint)
+            val rollFrames = anim?.frameCount ?: 6
+            anim?.drawFrame(canvas, destRect, ((progress * (rollFrames - 0.01f)).toInt() % rollFrames), flipH, paint)
             armorRenderer.drawOnPlayer(canvas, player, pb.centerX, pb.bottom - 32f, flipH, 0.95f)
         } else if (player.isAttacking && modularAttackAnim != null) {
             val progress = player.attackProgress.coerceIn(0f, 0.99f)
@@ -948,7 +949,8 @@ class PlayerAnimator(assetManager: AssetManager) {
                 else -> PlayerAnimState.IDLE
             }
             val anim = modularAnimations[animState] ?: modularAnimations[PlayerAnimState.IDLE]
-            val frameIndex = (anim?.currentFrame ?: 0).coerceIn(0, 5)
+            val maxFrames = anim?.frameCount ?: 6
+            val frameIndex = (anim?.currentFrame ?: 0).coerceIn(0, maxFrames - 1)
             anim?.draw(canvas, destRect, flipH, paint)
 
             val socket = when (animState) {

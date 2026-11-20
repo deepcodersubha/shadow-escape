@@ -154,8 +154,8 @@ class ArmorRenderer(private val assetManager: AssetManager) {
             canvas.scale(-1f, 1f, chestX, chestY)
         }
 
-        val baseW = 32f * scaleMultiplier
-        val baseH = 32f * scaleMultiplier
+        val baseW = 28f * scaleMultiplier
+        val baseH = 30f * scaleMultiplier
         val dest = RectF(chestX - baseW / 2f, chestY - baseH / 2f, chestX + baseW / 2f, chestY + baseH / 2f)
 
         canvas.drawBitmap(bmp, null, dest, armorPaint)
