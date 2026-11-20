@@ -12,6 +12,7 @@ class Player(startX: Float, startY: Float) {
     var currentOrigin: CharacterOrigin = CharacterOrigins.SHADOW_SHINOBI
 
     // Combat & Weaponry
+    var useModularSprite: Boolean = true
     var equippedWeapon: Weapon = Weapons.SHADOW_KATANA
     val inventory: MutableList<Weapon> = mutableListOf(
         Weapons.SHADOW_KATANA,

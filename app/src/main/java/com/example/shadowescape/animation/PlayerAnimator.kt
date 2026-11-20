@@ -62,6 +62,10 @@ class PlayerAnimator(assetManager: AssetManager) {
     private var sorcererAttack2Anim: SpriteAnimation? = null
     private var sorcererHitAnim: SpriteAnimation? = null
 
+    // In-House Modular Mannequin Animations (Watermark-free, 128x128 with sockets)
+    private val modularAnimations = mutableMapOf<PlayerAnimState, SpriteAnimation>()
+    private var modularAttackAnim: SpriteAnimation? = null
+
     var currentState: PlayerAnimState = PlayerAnimState.IDLE
         private set
 
@@ -245,6 +249,19 @@ class PlayerAnimator(assetManager: AssetManager) {
         sorcererAttack1Anim = loadStrip(assets, "characters/sorcerer/sorcerer_attack1.png", 231, 190, 8, 18f, false)
         sorcererAttack2Anim = loadStrip(assets, "characters/sorcerer/sorcerer_attack2.png", 231, 190, 8, 18f, false)
         sorcererHitAnim = loadStrip(assets, "characters/sorcerer/sorcerer_hit.png", 231, 190, 4, 14f, false)
+
+        // In-House Modular Mannequin Sprite Animations (128x128 per frame, 6 frames)
+        loadStrip(assets, "characters/modular/modular_idle.png", 128, 128, 6, 8f, true)?.let {
+            modularAnimations[PlayerAnimState.IDLE] = it
+        }
+        loadStrip(assets, "characters/modular/modular_run.png", 128, 128, 6, 12f, true)?.let {
+            modularAnimations[PlayerAnimState.RUN] = it
+        }
+        loadStrip(assets, "characters/modular/modular_jump.png", 128, 128, 6, 10f, false)?.let {
+            modularAnimations[PlayerAnimState.JUMP] = it
+            modularAnimations[PlayerAnimState.FALL] = it
+        }
+        modularAttackAnim = loadStrip(assets, "characters/modular/modular_attack.png", 128, 128, 6, 16f, false)
     }
 
     private fun loadStrip(
@@ -377,12 +394,14 @@ class PlayerAnimator(assetManager: AssetManager) {
             executionerAnimations[currentState]?.reset()
             sorcererAnimations[currentState]?.reset()
             roninAnimations[currentState]?.reset()
+            modularAnimations[currentState]?.reset()
         }
 
         animations[currentState]?.update(dt)
         if (currentState == PlayerAnimState.RUN) {
             // Dynamically scale running animation FPS with actual horizontal velocity to eliminate sliding
             val speedFactor = (Math.abs(player.vx) / 250f).coerceIn(0.7f, 1.6f)
+            modularAnimations[currentState]?.update(dt * speedFactor)
             when (player.currentOrigin.id) {
                 "shinobi" -> shinobiAnimations[currentState]?.update(dt * speedFactor)
                 "vanguard" -> vanguardAnimations[currentState]?.update(dt * speedFactor)
@@ -391,6 +410,7 @@ class PlayerAnimator(assetManager: AssetManager) {
                 "forsaken" -> roninAnimations[currentState]?.update(dt * speedFactor)
             }
         } else {
+            modularAnimations[currentState]?.update(dt)
             shinobiAnimations[currentState]?.update(dt)
             vanguardAnimations[currentState]?.update(dt)
             executionerAnimations[currentState]?.update(dt)
@@ -401,6 +421,13 @@ class PlayerAnimator(assetManager: AssetManager) {
 
     fun draw(canvas: Canvas, player: Player, paint: Paint?): Boolean {
         val pb = player.bounds
+
+        // In-House Modular Mannequin: High-precision modular sprite with swappable armors & weapons!
+        if (player.useModularSprite && modularAnimations.isNotEmpty()) {
+            if (renderModularMannequin(canvas, player, paint)) {
+                return true
+            }
+        }
 
         // Shadow Shinobi: Render using Shadow Shinobi sprite sheet animations!
         if (player.currentOrigin.id == "shinobi" && shinobiAnimations.isNotEmpty()) {
@@ -883,6 +910,78 @@ class PlayerAnimator(assetManager: AssetManager) {
 
         // Visibly render the weapon in the character's hand
         weaponRenderer.draw(canvas, player, destRect)
+
+        canvas.restore()
+        return true
+    }
+
+    /**
+     * Renders the modular base mannequin sprite sheet with layered armor and dynamic weapon sockets.
+     */
+    private fun renderModularMannequin(canvas: Canvas, player: Player, paint: Paint?): Boolean {
+        val pb = player.bounds
+        val scale = 0.95f
+        val spriteW = 128f * scale
+        val spriteH = 128f * scale
+        val bottomOffset = 14f * scale
+
+        destRect.set(
+            pb.centerX - spriteW / 2f,
+            pb.bottom - spriteH + bottomOffset,
+            pb.centerX + spriteW / 2f,
+            pb.bottom + bottomOffset
+        )
+
+        canvas.save()
+        val flipH = !player.facingRight
+
+        if (player.isRolling) {
+            val progress = (1f - (player.rollTimer / player.rollDuration)).coerceIn(0f, 1f)
+            val rollAngle = progress * 360f
+            canvas.rotate(if (player.facingRight) rollAngle else -rollAngle, pb.centerX, pb.bottom - 32f)
+            val anim = modularAnimations[PlayerAnimState.RUN] ?: modularAnimations[PlayerAnimState.IDLE]
+            anim?.drawFrame(canvas, destRect, ((progress * 5.99f).toInt() % 6), flipH, paint)
+            armorRenderer.drawOnPlayer(canvas, player, pb.centerX, pb.bottom - 32f, flipH, 0.95f)
+        } else if (player.isAttacking && modularAttackAnim != null) {
+            val progress = player.attackProgress.coerceIn(0f, 0.99f)
+            val frameIndex = (progress * 5.99f).toInt().coerceIn(0, 5)
+            modularAttackAnim!!.drawFrame(canvas, destRect, frameIndex, flipH, paint)
+
+            val socket = ModularFrameSockets.ATTACK_SOCKETS.getOrElse(frameIndex) { ModularFrameSockets.ATTACK_SOCKETS[0] }
+            val torsoX = pb.centerX + socket.torsoXOffset * (if (flipH) -1f else 1f)
+            val torsoY = pb.bottom - socket.torsoYOffset
+            armorRenderer.drawOnPlayer(canvas, player, torsoX, torsoY, flipH, socket.torsoScale)
+
+            // Render weapon pinned to dynamic hand socket with swing angle
+            val handX = pb.centerX + socket.handXOffset * (if (flipH) -1f else 1f)
+            val handY = pb.bottom - socket.handYOffset
+            weaponAnchor.set(handX - 22f, handY - 40f, handX + 22f, handY + 20f)
+            weaponRenderer.draw(canvas, player, weaponAnchor)
+        } else {
+            val animState = when (currentState) {
+                PlayerAnimState.RUN -> PlayerAnimState.RUN
+                PlayerAnimState.JUMP, PlayerAnimState.FALL -> PlayerAnimState.JUMP
+                else -> PlayerAnimState.IDLE
+            }
+            val anim = modularAnimations[animState] ?: modularAnimations[PlayerAnimState.IDLE]
+            val frameIndex = (anim?.currentFrame ?: 0).coerceIn(0, 5)
+            anim?.draw(canvas, destRect, flipH, paint)
+
+            val socket = when (animState) {
+                PlayerAnimState.RUN -> ModularFrameSockets.RUN_SOCKETS.getOrElse(frameIndex) { ModularFrameSockets.RUN_SOCKETS[0] }
+                PlayerAnimState.JUMP, PlayerAnimState.FALL -> ModularFrameSockets.JUMP_SOCKETS.getOrElse(frameIndex) { ModularFrameSockets.JUMP_SOCKETS[0] }
+                else -> ModularFrameSockets.IDLE_SOCKETS.getOrElse(frameIndex) { ModularFrameSockets.IDLE_SOCKETS[0] }
+            }
+
+            val torsoX = pb.centerX + socket.torsoXOffset * (if (flipH) -1f else 1f)
+            val torsoY = pb.bottom - socket.torsoYOffset
+            armorRenderer.drawOnPlayer(canvas, player, torsoX, torsoY, flipH, socket.torsoScale)
+
+            val handX = pb.centerX + socket.handXOffset * (if (flipH) -1f else 1f)
+            val handY = pb.bottom - socket.handYOffset
+            weaponAnchor.set(handX - 22f, handY - 40f, handX + 22f, handY + 20f)
+            weaponRenderer.draw(canvas, player, weaponAnchor)
+        }
 
         canvas.restore()
         return true

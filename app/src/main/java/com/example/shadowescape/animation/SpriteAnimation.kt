@@ -14,7 +14,8 @@ class SpriteAnimation(
     val fps: Float,
     val looping: Boolean = true
 ) {
-    private var currentFrame: Int = 0
+    var currentFrame: Int = 0
+        private set
     private var elapsed: Float = 0f
     private val frameDuration: Float = if (fps > 0f) 1f / fps else 0.1f
 
